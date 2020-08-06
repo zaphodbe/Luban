@@ -4,6 +4,7 @@ import noop from 'lodash/noop';
 import ToolPath from '../../../shared/lib/gcodeToolPath';
 import { DATA_PREFIX } from '../../constants';
 import { readFileToList } from './index';
+import { Vector2 } from '../../../shared/lib/math/Vector2';
 
 const defaultColor = [40, 167, 255];
 const motionColor = {
@@ -50,15 +51,30 @@ class GcodeToBufferGeometryWorkspace {
 
             let boundingBox = null;
 
+            const calculateXYZ = (state, modal) => {
+                const { headerType, isRotate = false, diameter } = modal;
+                let z = state.z;
+                if (isRotate && headerType === 'laser' && state.b) {
+                    z = diameter / 2;
+                }
+                const res = Vector2.rotate({ x: state.x, y: z }, -state.b);
+                return {
+                    x: res.x,
+                    y: state.y,
+                    z: res.y
+                };
+            };
+
             const toolPath = new ToolPath({
                 addLine: (modal, v1, v2) => {
                     const { motion } = modal;
                     const color = motionColor[motion] || defaultColor;
                     const indexColor = indexMotionColor[motion] || defaultColor;
                     if (lastMotion !== motion) {
-                        positions.push(v1.x);
-                        positions.push(v1.y);
-                        positions.push(v1.z);
+                        const res = calculateXYZ(v1, modal);
+                        positions.push(res.x);
+                        positions.push(res.y);
+                        positions.push(res.z);
                         colors.push(color[0]);
                         colors.push(color[1]);
                         colors.push(color[2]);
@@ -67,20 +83,31 @@ class GcodeToBufferGeometryWorkspace {
                         indexColors.push(indexColor[2]);
 
                         lastMotion = motion;
+
+                        indexs.push(indexCount);
                     }
 
-                    positions.push(v2.x);
-                    positions.push(v2.y);
-                    positions.push(v2.z);
-                    colors.push(color[0]);
-                    colors.push(color[1]);
-                    colors.push(color[2]);
-                    indexColors.push(indexColor[0]);
-                    indexColors.push(indexColor[1]);
-                    indexColors.push(indexColor[2]);
+                    const segCount = Math.max(Math.ceil(Math.abs(v2.b - v1.b) / 5), 1);
 
-                    indexs.push(indexCount);
-                    indexs.push(indexCount);
+                    for (let j = 1; j <= segCount; j++) {
+                        const res = calculateXYZ({
+                            x: v1.x + (v2.x - v1.x) / segCount * j,
+                            y: v1.y + (v2.y - v1.y) / segCount * j,
+                            z: v1.z + (v2.z - v1.z) / segCount * j,
+                            b: v1.b + (v2.b - v1.b) / segCount * j
+                        }, modal);
+                        positions.push(res.x);
+                        positions.push(res.y);
+                        positions.push(res.z);
+                        colors.push(color[0]);
+                        colors.push(color[1]);
+                        colors.push(color[2]);
+                        indexColors.push(indexColor[0]);
+                        indexColors.push(indexColor[1]);
+                        indexColors.push(indexColor[2]);
+
+                        indexs.push(indexCount);
+                    }
 
                     if (motion === 'G1' && (v1.x !== v2.x || v1.y !== v2.y || v1.z !== v2.z)) {
                         if (boundingBox === null) {

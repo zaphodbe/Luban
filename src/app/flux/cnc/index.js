@@ -9,13 +9,23 @@ import {
     ACTION_UPDATE_TRANSFORMATION
 } from '../actionType';
 import { actions as editorActions, CNC_LASER_STAGE } from '../editor';
-
-import { PAGE_EDITOR } from '../../constants';
+import { PAGE_EDITOR, CNC_TOOL_SNAP_V_BIT_CONFIG, MACHINE_SERIES } from '../../constants';
 
 const ACTION_CHANGE_TOOL_PARAMS = 'cnc/ACTION_CHANGE_TOOL_PARAMS';
 
 const initModelGroup = new ModelGroup('cnc');
 const INITIAL_STATE = {
+
+    materials: {
+        isRotate: false,
+        diameter: 24,
+        length: MACHINE_SERIES.ORIGINAL.setting.size.y,
+        fixtureLength: 20,
+        isCW: true,
+        x: 0,
+        y: 0,
+        z: 0
+    },
 
     page: PAGE_EDITOR,
 
@@ -48,8 +58,9 @@ const INITIAL_STATE = {
 
     toolSnap: '',
     toolParams: {
-        toolDiameter: 3.175, // tool diameter (in mm)
-        toolAngle: 30 // tool angle (in degree, defaults to 30° for V-Bit)
+        toolDiameter: CNC_TOOL_SNAP_V_BIT_CONFIG.diameter, // tool diameter (in mm)
+        toolAngle: CNC_TOOL_SNAP_V_BIT_CONFIG.angle, // tool angle (in degree, defaults to 30° for V-Bit)，
+        toolShaftDiameter: CNC_TOOL_SNAP_V_BIT_CONFIG.shaftDiameter // tool angle (in degree, defaults to 30° for V-Bit)
     },
 
     // snapshot state
@@ -82,16 +93,6 @@ export const actions = {
 
         // TODO: not yet to clear old events before regist
         const controllerEvents = {
-            'taskCompleted:generateToolPath': (taskResult) => {
-                if (taskResult.headType === 'cnc') {
-                    dispatch(editorActions.onReceiveTaskResult('cnc', taskResult));
-                }
-            },
-            'taskCompleted:generateGcode': (taskResult) => {
-                if (taskResult.headType === 'cnc') {
-                    dispatch(editorActions.onReceiveGcodeTaskResult('cnc', taskResult));
-                }
-            },
             'taskProgress:generateToolPath': (taskResult) => {
                 if (taskResult.headType === 'cnc') {
                     dispatch(editorActions.updateState('cnc', {
@@ -99,11 +100,37 @@ export const actions = {
                     }));
                 }
             },
+            'taskCompleted:generateToolPath': (taskResult) => {
+                if (taskResult.headType === 'cnc') {
+                    dispatch(editorActions.onReceiveTaskResult('cnc', taskResult));
+                }
+            },
+
             'taskProgress:generateGcode': (taskResult) => {
                 if (taskResult.headType === 'cnc') {
                     dispatch(editorActions.updateState('cnc', {
                         progress: taskResult.progress
                     }));
+                }
+            },
+            'taskCompleted:generateGcode': (taskResult) => {
+                if (taskResult.headType === 'cnc') {
+                    dispatch(editorActions.onReceiveGcodeTaskResult('cnc', taskResult));
+                }
+            },
+
+            'taskProgress:generateViewPath': (taskResult) => {
+                if (taskResult.headType === 'cnc') {
+                    dispatch(editorActions.updateState('cnc', {
+                        progress: taskResult.progress
+                    }));
+                }
+            },
+            'taskCompleted:generateViewPath': (taskResult) => {
+                if (taskResult.headType === 'cnc') {
+                    if (taskResult.headType === 'cnc') {
+                        dispatch(editorActions.onReceiveViewPathTaskResult('cnc', taskResult));
+                    }
                 }
             }
         };

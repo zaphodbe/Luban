@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import uuid from 'uuid';
 import { generateToolPathObject3D } from '../flux/generator';
 import { DATA_PREFIX } from '../constants';
 
@@ -33,27 +32,21 @@ class ToolPathModel {
 
         this.visible = true;
 
-        this.needPreview = true;
         this.toolPathFilename = null;
         this.toolPathObj3D = null;
+
+        this.isPreview = false;
     }
 
     updateVisible(param) {
         this.toolPathObj3D && (this.toolPathObj3D.visible = param);
     }
 
-    updateNeedPreview(param) {
-        this.needPreview = param;
-        if (param) {
-            this.id = '';
-        }
-    }
 
     updateMode(mode, gcodeConfig) {
         if (mode === this.mode) {
             return;
         }
-        this.updateNeedPreview(true);
         this.modeConfigs[this.mode] = {
             gcodeConfig: {
                 ...this.gcodeConfig
@@ -76,16 +69,11 @@ class ToolPathModel {
             ...this.gcodeConfig,
             ...gcodeConfig
         };
-        this.updateNeedPreview(true);
     }
 
     getTaskInfo() {
-        const id = uuid.v4();
-        this.id = id;
         return {
-            id: this.id,
             printOrder: this.printOrder,
-            needPreview: this.needPreview,
             gcodeConfig: this.gcodeConfig,
             toolPathFilename: this.toolPathFilename,
             gcodeConfigPlaceholder: this.gcodeConfigPlaceholder,
@@ -111,6 +99,7 @@ class ToolPathModel {
                     } else {
                         this.estimatedTime = toolPath.estimatedTime;
                     }
+                    this.isPreview = true;
                     return resolve(this.toolPathObj3D);
                 }
             );
@@ -130,9 +119,7 @@ class ToolPathModel {
         this.relatedModel = model;
     }
 
-    refresh() {
-        this.updateNeedPreview(true);
-    }
+    refresh() {}
 
     getGcodeConfig() {
         return this.gcodeConfig;

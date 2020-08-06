@@ -9,9 +9,12 @@ import {
 } from '../../models/ModelInfoUtils';
 
 import { baseActions, checkIsAllModelsPreviewed, computeTransformationSizeForTextVector } from './base';
-import { PAGE_EDITOR, PAGE_PROCESS } from '../../constants';
+import { PAGE_PROCESS } from '../../constants';
+
 import { controller } from '../../lib/controller';
 import { DEFAULT_SCALE } from '../../ui/SVGEditor/constants';
+import { round } from '../../../shared/lib/utils';
+import { machineStore } from '../../store/local-storage';
 
 const getCount = (() => {
     let count = 0;
@@ -29,6 +32,8 @@ const getSourceType = (fileName) => {
         sourceType = 'svg';
     } else if (extname === '.dxf') {
         sourceType = 'dxf';
+    } else if (extname === '.stl') {
+        sourceType = 'image3d';
     } else {
         sourceType = 'raster';
     }
@@ -46,25 +51,28 @@ export const CNC_LASER_STAGE = {
     RE_PREVIEW: 7,
     GENERATING_GCODE: 8,
     GENERATE_GCODE_SUCCESS: 9,
-    GENERATE_GCODE_FAILED: 10
+    GENERATE_GCODE_FAILED: 10,
+    GENERATING_VIEWPATH: 11,
+    GENERATE_VIEWPATH_SUCCESS: 12,
+    GENERATE_VIEWPATH_FAILED: 13
 };
 
 export const actions = {
 
     ...baseActions,
 
-    init: () => (dispatch, getState) => {
-        // TODO: temporary workaround for model image processing
-        const bindSVGActions = (headType) => {
-            const { SVGActions } = getState()[headType];
+    init: (headType) => (dispatch, getState) => {
+        const { SVGActions } = getState()[headType];
 
-            SVGActions.setModelTransformCallback(() => {
-                dispatch(actions.processSelectedModel(headType));
-            });
-        };
+        SVGActions.setModelTransformCallback(() => {
+            dispatch(actions.processSelectedModel(headType));
+            dispatch(actions.showAllModelsObj3D(headType));
+        });
 
-        bindSVGActions('laser');
-        bindSVGActions('cnc');
+        const materials = machineStore.get(`${headType}.materials`);
+        if (materials) {
+            dispatch(actions.updateMaterials(headType, materials));
+        }
     },
 
     onSizeUpdated: (headType, size) => (dispatch, getState) => {
@@ -118,9 +126,11 @@ export const actions = {
      * 1. Upload image to backend
      * 2. Create Mold from image information
      */
-    uploadImage: (headType, file, mode, onError) => (dispatch) => {
+    uploadImage: (headType, file, mode, onError) => (dispatch, getState) => {
+        const { materials } = getState()[headType];
         const formData = new FormData();
         formData.append('image', file);
+        formData.append('isRotate', materials.isRotate);
 
         api.uploadImage(formData)
             .then((res) => {
@@ -153,7 +163,7 @@ export const actions = {
 
     generateModel: (headType, originalName, uploadName, sourceWidth, sourceHeight, mode, sourceType, config, gcodeConfig, transformation) => (dispatch, getState) => {
         const { size } = getState().machine;
-        const { toolParams, modelGroup, SVGActions } = getState()[headType];
+        const { materials, toolParams, modelGroup, SVGActions } = getState()[headType];
 
         sourceType = sourceType || getSourceType(originalName);
 
@@ -183,7 +193,8 @@ export const actions = {
             ? {
                 ...modelDefaultConfigs.gcodeConfig,
                 toolDiameter: toolParams.toolDiameter,
-                toolAngle: toolParams.toolAngle
+                toolAngle: toolParams.toolAngle,
+                toolShaftDiameter: toolParams.toolShaftDiameter
             }
             : modelDefaultConfigs.gcodeConfig;
 
@@ -226,7 +237,8 @@ export const actions = {
             height,
             transformation,
             config,
-            gcodeConfig
+            gcodeConfig,
+            isRotate: materials.isRotate
         };
 
         const model = modelGroup.addModel(options);
@@ -235,6 +247,7 @@ export const actions = {
         SVGActions.addSelectedSvgModelsByModels([model]);
 
         // Process image right after created
+        dispatch(actions.showAllModelsObj3D(headType));
         dispatch(actions.processSelectedModel(headType));
     },
 
@@ -316,11 +329,12 @@ export const actions = {
         // Set or replace G-code config of new mode
         let { gcodeConfig } = modelDefaultConfigs;
         if (headType === 'cnc') {
-            const { toolDiameter, toolAngle } = getState().cnc.toolParams;
+            const { toolDiameter, toolAngle, toolShaftDiameter } = getState().cnc.toolParams;
             gcodeConfig = {
                 ...gcodeConfig,
                 toolDiameter,
-                toolAngle
+                toolAngle,
+                toolShaftDiameter
             };
         }
         const toolPathModelState = toolPathModelGroup.updateSelectedMode(mode, gcodeConfig);
@@ -384,13 +398,12 @@ export const actions = {
         };
 
         modelGroup.updateSelectedConfig(newConfig);
-
-        // dispatch(actions.processSelectedModel(headType));
+        dispatch(actions.showAllModelsObj3D(headType));
     },
 
     // TODO: temporary workaround for model image processing
     processSelectedModel: (headType) => (dispatch, getState) => {
-        const { modelGroup, SVGActions } = getState()[headType];
+        const { materials, modelGroup, SVGActions } = getState()[headType];
 
         const selectedModels = modelGroup.getSelectedModelArray();
         if (selectedModels.length !== 1) {
@@ -398,7 +411,7 @@ export const actions = {
         }
 
         const selectedModel = selectedModels[0];
-        if (selectedModel.sourceType !== 'raster' && selectedModel.config.svgNodeName !== 'text' && selectedModel.sourceType !== 'dxf') {
+        if (selectedModel.sourceType !== 'raster' && selectedModel.sourceType !== 'image3d' && selectedModel.config.svgNodeName !== 'text' && selectedModel.sourceType !== 'dxf') {
             return;
         }
 
@@ -413,7 +426,11 @@ export const actions = {
                 rotationZ: 0,
                 flip: selectedModel.transformation.flip
             },
-            config: selectedModel.config
+
+            config: {
+                ...selectedModel.config
+            },
+            isRotate: materials.isRotate
         };
 
         api.processImage(options)
@@ -424,16 +441,12 @@ export const actions = {
                 }
 
                 const svgModel = selectedModel.relatedModels.svgModel;
-                const toolPathModel = selectedModel.relatedModels.toolPathModel;
 
                 // modelGroup.updateSelectedModelProcessImage(processImageName);
                 selectedModel.updateProcessImageName(processImageName);
 
                 // SVGActions.updateElementImage(processImageName);
                 SVGActions.updateSvgModelImage(svgModel, processImageName);
-
-                // toolPathModelGroup.updateSelectedNeedPreview(true);
-                toolPathModel.updateNeedPreview(true);
 
                 // dispatch(baseActions.recordSnapshot(headType));
                 dispatch(baseActions.resetCalculatedState(headType));
@@ -444,6 +457,77 @@ export const actions = {
                 console.error(e);
             });
     },
+
+    // processAllMeshModel: (headType) => (dispatch, getState) => {
+    //     const { materials, modelGroup, SVGActions } = getState()[headType];
+    //     const { size } = getState().machine;
+    //
+    //     const models = modelGroup.getModels().filter(m => m.sourceType === 'image3d');
+    //
+    //     console.log(models);
+    //
+    //     if (models.length === 0) {
+    //         return;
+    //     }
+    //
+    //     for (const model of models) {
+    //         const options = {
+    //             headType: headType,
+    //             uploadName: model.uploadName,
+    //             sourceType: model.sourceType,
+    //             mode: model.mode,
+    //             transformation: {
+    //                 width: model.transformation.width,
+    //                 height: model.transformation.height,
+    //                 rotationZ: 0,
+    //                 flip: model.transformation.flip
+    //             },
+    //
+    //             config: {
+    //                 ...model.config
+    //             },
+    //             isRotate: materials.isRotate
+    //         };
+    //
+    //         api.processImage(options)
+    //             .then((res) => {
+    //                 const processImageName = res.body.filename;
+    //                 if (!processImageName) {
+    //                     return;
+    //                 }
+    //
+    //                 const { width, height } = res.body;
+    //
+    //                 const svgModel = model.relatedModels.svgModel;
+    //                 const { sourceWidth, sourceHeight } = sizeModelByMachineSize(size, width, height);
+    //                 const modelOptions = {
+    //                     sourceWidth: sourceWidth,
+    //                     sourceHeight: sourceHeight,
+    //                     width: width,
+    //                     height: height,
+    //                     transformation: {
+    //                         width: width * model.transformation.scaleX,
+    //                         height: height * model.transformation.scaleY
+    //                     }
+    //                 };
+    //                 model.updateAndRefresh(modelOptions);
+    //
+    //                 // modelGroup.updateSelectedModelProcessImage(processImageName);
+    //                 model.updateProcessImageName(processImageName);
+    //
+    //                 // SVGActions.updateElementImage(processImageName);
+    //                 SVGActions.updateSvgModelImage(svgModel, processImageName);
+    //
+    //                 // dispatch(baseActions.recordSnapshot(headType));
+    //                 dispatch(baseActions.resetCalculatedState(headType));
+    //                 dispatch(baseActions.render(headType));
+    //             })
+    //             .catch((e) => {
+    //                 // TODO: use log
+    //                 console.error(e);
+    //             });
+    //     }
+    // },
 
     duplicateSelectedModel: (headType) => (dispatch, getState) => {
         const { page, modelGroup } = getState()[headType];
@@ -579,11 +663,10 @@ export const actions = {
     },
 
     onModelTransform: (headType) => (dispatch, getState) => {
-        const { modelGroup, toolPathModelGroup, transformationUpdateTime } = getState()[headType];
+        const { modelGroup, transformationUpdateTime } = getState()[headType];
 
         const modelState = modelGroup.onModelTransform();
-        toolPathModelGroup.updateSelectedNeedPreview(true);
-        dispatch(actions.changeModelVisualizer(headType, modelState.modelID, false));
+        dispatch(actions.showAllModelsObj3D(headType));
         if (new Date().getTime() - transformationUpdateTime > 50) {
             dispatch(baseActions.updateTransformation(headType, modelState.transformation));
         }
@@ -601,7 +684,6 @@ export const actions = {
 
                 dispatch(baseActions.updateState(headType, { modelState }));
                 dispatch(baseActions.updateTransformation(headType, modelState.transformation));
-                dispatch(actions.previewModel(headType));
                 // dispatch(actions.recordSnapshot(headType));
             }
         }
@@ -657,60 +739,59 @@ export const actions = {
     },
     */
 
-    previewModel: (headType, isProcess) => (dispatch, getState) => {
-        const { page, modelGroup, toolPathModelGroup, autoPreviewEnabled } = getState()[headType];
-        if (page === PAGE_EDITOR) {
-            return;
-        }
-        if (isProcess || autoPreviewEnabled) {
-            const modelState = modelGroup.getSelectedModel()
-                .getTaskInfo();
-            if (modelState) {
-                const toolPathModelTaskInfo = toolPathModelGroup.getToolPathModelTaskInfo(modelState.modelID);
-                if (toolPathModelTaskInfo && toolPathModelTaskInfo.needPreview && toolPathModelTaskInfo.visible) {
-                    const taskInfo = {
-                        ...modelState,
-                        ...toolPathModelTaskInfo
-                    };
-                    controller.commitToolPathTask({
-                        taskId: taskInfo.modelID,
-                        headType: headType,
-                        data: taskInfo
-                    });
-                    dispatch(baseActions.updateState(headType, {
-                        stage: CNC_LASER_STAGE.GENERATING_TOOLPATH,
-                        progress: 0
-                    }));
-                }
-            }
-        }
-    },
+    // previewModel: (headType, isProcess) => (dispatch, getState) => {
+    //     const { page, modelGroup, toolPathModelGroup, autoPreviewEnabled } = getState()[headType];
+    //     if (page === PAGE_EDITOR) {
+    //         return;
+    //     }
+    //
+    //     const { materials } = getState()[headType];
+    //     const { isRotate = false, diameter = 0, isCW = true } = materials || {};
+    //
+    //     if (isProcess || autoPreviewEnabled) {
+    //         const modelState = modelGroup.getSelectedModel()
+    //             .getTaskInfo();
+    //         if (modelState) {
+    //             const toolPathModelTaskInfo = toolPathModelGroup.getToolPathModelTaskInfo(modelState.modelID);
+    //             if (toolPathModelTaskInfo && toolPathModelTaskInfo.visible) {
+    //                 const taskInfo = {
+    //                     ...modelState,
+    //                     ...toolPathModelTaskInfo,
+    //                     isRotate: isRotate,
+    //                     diameter: diameter,
+    //                     isCW: isCW
+    //                 };
+    //                 controller.commitToolPathTask({
+    //                     taskId: taskInfo.modelID,
+    //                     headType: headType,
+    //                     data: taskInfo
+    //                 });
+    //                 dispatch(baseActions.updateState(headType, {
+    //                     stage: CNC_LASER_STAGE.GENERATING_TOOLPATH,
+    //                     progress: 0
+    //                 }));
+    //             }
+    //         }
+    //     }
+    // },
 
     manualPreview: (headType, isProcess) => async (dispatch, getState) => {
-        const { page, modelGroup, autoPreviewEnabled } = getState()[headType];
+        const { modelGroup, toolPathModelGroup, autoPreviewEnabled } = getState()[headType];
 
-        if (page === PAGE_EDITOR) {
-            return;
-        }
+        const { materials } = getState()[headType];
+
         if (isProcess || autoPreviewEnabled) {
             for (const model of modelGroup.getModels()) {
-                await model.preview();
+                await model.preview({ materials });
             }
         }
-    },
 
-    changeModelVisualizer: (headType, modelID, isProcess) => (dispatch, getState) => {
-        const { page, modelGroup, toolPathModelGroup } = getState()[headType];
-        if (page === PAGE_PROCESS) {
-            const model = modelGroup.getModel(modelID);
-            const toolPathModel = toolPathModelGroup.getToolPathModel(modelID);
-            if (isProcess) {
-                model.updateVisible(false);
-                toolPathModel.updateVisible(true);
-            } else {
-                model.updateVisible(true);
-                toolPathModel.updateVisible(false);
-            }
+        const isAllModelsPreviewed = checkIsAllModelsPreviewed(modelGroup, toolPathModelGroup);
+        if (isAllModelsPreviewed) {
+            dispatch(baseActions.updateState(headType, {
+                isAllModelsPreviewed: isAllModelsPreviewed
+            }));
+            dispatch(actions.showAllToolPathsObj3D(headType));
         }
     },
 
@@ -730,27 +811,39 @@ export const actions = {
         });
     },
 
-    initModelsPreviewChecker: (headType) => (dispatch, getState) => {
-        const { modelGroup, toolPathModelGroup, isAllModelsPreviewed } = getState()[headType];
-        const check = () => {
-            const isAllModelsPreviewedN = checkIsAllModelsPreviewed(modelGroup, toolPathModelGroup);
-            if (isAllModelsPreviewedN !== isAllModelsPreviewed) {
-                dispatch(baseActions.updateState(headType, { isAllModelsPreviewed: isAllModelsPreviewedN }));
-            }
-            setTimeout(check, 200);
-        };
-        check();
+    // initModelsPreviewChecker: (headType) => (dispatch, getState) => {
+    //     const { modelGroup, toolPathModelGroup, isAllModelsPreviewed } = getState()[headType];
+    //     const check = () => {
+    //         const isAllModelsPreviewedN = checkIsAllModelsPreviewed(modelGroup, toolPathModelGroup);
+    //         if (isAllModelsPreviewedN !== isAllModelsPreviewed) {
+    //             dispatch(baseActions.updateState(headType, { isAllModelsPreviewed: isAllModelsPreviewedN }));
+    //         }
+    //         setTimeout(check, 200);
+    //     };
+    //     check();
+    // },
+
+    showAllToolPathsObj3D: (headType) => (dispatch, getState) => {
+        const { modelGroup, toolPathModelGroup } = getState()[headType];
+        modelGroup.hideAllModelsObj3D();
+        toolPathModelGroup.showAllToolPathModels();
+        toolPathModelGroup.showToolPathObjs();
+        dispatch(baseActions.render(headType));
     },
 
     showAllModelsObj3D: (headType) => (dispatch, getState) => {
         const { modelGroup, toolPathModelGroup } = getState()[headType];
         modelGroup.showAllModelsObj3D();
-        toolPathModelGroup.hideAllToolPathModelsObj3D();
+        toolPathModelGroup.hideAllToolPathModels();
+
+        dispatch(baseActions.updateState(headType, {
+            isAllModelsPreviewed: false
+        }));
     },
 
     onReceiveTaskResult: (headType, taskResult) => async (dispatch, getState) => {
         // const state = getState()[headType];
-        const { toolPathModelGroup } = getState()[headType];
+        const { modelGroup, toolPathModelGroup } = getState()[headType];
 
         const { data, filename } = taskResult;
 
@@ -772,22 +865,26 @@ export const actions = {
         const toolPathModelState = await toolPathModelGroup.receiveTaskResult(data, filename);
 
         if (toolPathModelState) {
-            dispatch(actions.changeModelVisualizer(headType, toolPathModelState.modelID, true));
-            // dispatch(actions.togglePage(headType, PAGE_PROCESS));
             dispatch(baseActions.updateState(headType, {
                 previewFailed: false,
                 stage: CNC_LASER_STAGE.PREVIEW_SUCCESS,
                 progress: 1
             }));
-            dispatch(baseActions.render(headType));
         } else {
             dispatch(baseActions.updateState(headType, {
                 previewFailed: false,
                 stage: CNC_LASER_STAGE.RE_PREVIEW,
                 progress: 1
             }));
-            dispatch(baseActions.render(headType));
         }
+        const isAllModelsPreviewed = checkIsAllModelsPreviewed(modelGroup, toolPathModelGroup);
+        if (isAllModelsPreviewed) {
+            dispatch(actions.showAllToolPathsObj3D(headType));
+            dispatch(baseActions.updateState(headType, {
+                isAllModelsPreviewed: isAllModelsPreviewed
+            }));
+        }
+        dispatch(baseActions.render(headType));
     },
 
     updateSelectedModelPrintOrder: (headType, printOrder) => (dispatch, getState) => {
@@ -801,8 +898,8 @@ export const actions = {
     updateSelectedModelGcodeConfig: (headType, gcodeConfig) => (dispatch, getState) => {
         const { toolPathModelGroup } = getState()[headType];
         toolPathModelGroup.updateSelectedGcodeConfig(gcodeConfig);
+        dispatch(actions.manualPreview(headType));
         dispatch(baseActions.updateGcodeConfig(headType, gcodeConfig));
-        dispatch(actions.previewModel(headType));
         dispatch(baseActions.resetCalculatedState(headType));
     },
 
@@ -853,6 +950,26 @@ export const actions = {
         }));
     },
 
+
+    onReceiveViewPathTaskResult: (headType, taskResult) => async (dispatch, getState) => {
+        const { size } = getState().machine;
+        const { toolPathModelGroup, materials } = getState()[headType];
+        const { isRotate } = materials;
+
+        if (taskResult.taskStatus === 'failed') {
+            dispatch(baseActions.updateState(headType, {
+                stage: CNC_LASER_STAGE.GENERATE_GCODE_FAILED,
+                progress: 1
+            }));
+            return;
+        }
+        const { viewPathFile } = taskResult;
+        toolPathModelGroup.receiveViewPathTaskResult(viewPathFile, isRotate ? materials : size).then(() => {
+            dispatch(baseActions.render(headType));
+        });
+    },
+
+
     getEstimatedTime: (headType, type) => (dispatch, getState) => {
         const { modelGroup } = getState()[headType];
         if (type === 'selected') {
@@ -868,29 +985,52 @@ export const actions = {
         return modelGroup.getSelectedModel();
     },
 
-    togglePage: (headType, page) => (dispatch, getState) => {
-        const { modelGroup, toolPathModelGroup } = getState()[headType];
+    togglePage: (headType, page) => (dispatch) => {
         dispatch(baseActions.updateState(headType, {
             page: page
         }));
-        if (page === PAGE_EDITOR) {
-            modelGroup.showAllModelsObj3D();
-            toolPathModelGroup.hideAllToolPathModelsObj3D();
-        } else {
-            toolPathModelGroup.showAllToolPathModelsObj3D();
-            for (const model of modelGroup.getModels()) {
-                const toolPath = toolPathModelGroup.getToolPathModel(model.modelID);
-                if (toolPath.needPreview) {
-                    toolPath.updateVisible(false);
-                    model.updateVisible(true);
-                } else {
-                    toolPath.updateVisible(true);
-                    model.updateVisible(false);
-                }
-            }
+        if (page === PAGE_PROCESS) {
             dispatch(actions.manualPreview(headType));
         }
         dispatch(baseActions.render(headType));
+    },
+
+    /**
+     * Generate View Path.
+     *
+     * @param headType
+     * @param thumbnail G-code thumbnail should be included in G-code header.
+     * @returns {Function}
+     */
+    generateViewPath: (headType) => (dispatch, getState) => {
+        const modelInfos = [];
+        const { modelGroup, toolPathModelGroup, materials } = getState()[headType];
+
+        for (const model of modelGroup.getModels()) {
+            if (model.hideFlag) continue;
+            const modelTaskInfo = model.getTaskInfo();
+            const toolPathModelTaskInfo = toolPathModelGroup.getToolPathModelTaskInfo(modelTaskInfo.modelID);
+            if (toolPathModelTaskInfo) {
+                const taskInfo = {
+                    ...modelTaskInfo,
+                    ...toolPathModelTaskInfo,
+                    materials
+                };
+                modelInfos.push(taskInfo);
+            }
+        }
+        if (modelInfos.length === 0) {
+            return;
+        }
+        controller.commitViewPathTask({
+            taskId: uuid.v4(),
+            headType: headType,
+            data: modelInfos
+        });
+        dispatch(baseActions.updateState(headType, {
+            stage: CNC_LASER_STAGE.GENERATING_GCODE,
+            progress: 0
+        }));
     },
 
     /**
@@ -958,10 +1098,9 @@ export const actions = {
     },
 
     arrangeAllModels2D: (headType) => (dispatch, getState) => {
-        const { modelGroup, toolPathModelGroup } = getState()[headType];
+        const { modelGroup } = getState()[headType];
         modelGroup.arrangeAllModels2D();
         const modelState = modelGroup.onModelTransform();
-        toolPathModelGroup.updateAllNeedPreview(true);
 
         dispatch(actions.showAllModelsObj3D(headType));
         dispatch(baseActions.updateTransformation(headType, modelState.transformation));
@@ -980,8 +1119,6 @@ export const actions = {
 
         const modelState = modelGroup.undoRedo(snapshots.models);
         const toolPathModelState = toolPathModelGroup.undoRedo(snapshots.toolPathModels);
-
-        toolPathModelGroup.updateAllNeedPreview(true);
 
         dispatch(baseActions.updateState(headType, {
             ...modelState,
@@ -1006,8 +1143,6 @@ export const actions = {
 
         const modelState = modelGroup.undoRedo(snapshots.models);
         const toolPathModelState = toolPathModelGroup.undoRedo(snapshots.toolPathModels);
-
-        toolPathModelGroup.updateAllNeedPreview(true);
 
         dispatch(baseActions.updateState(headType, {
             ...modelState,
@@ -1182,6 +1317,34 @@ export const actions = {
         }
         model.updateTransformation(transformation);
         svgModel.onUpdate();
+    },
+
+    updateMaterials: (headType, newMaterials) => (dispatch, getState) => {
+        const { materials, toolPathModelGroup } = getState()[headType];
+        const allMaterials = {
+            ...materials,
+            ...newMaterials
+        };
+
+        machineStore.set(`${headType}.materials`, allMaterials);
+
+        if (allMaterials.isRotate) {
+            allMaterials.x = round(allMaterials.diameter * Math.PI, 2);
+            allMaterials.y = allMaterials.length;
+        } else {
+            allMaterials.x = 0;
+            allMaterials.y = 0;
+        }
+        if (headType === 'laser') {
+            toolPathModelGroup.updateMaterials(allMaterials);
+        }
+        dispatch(baseActions.updateState(headType, {
+            materials: {
+                ...allMaterials
+            }
+        }));
+        // dispatch(actions.processAllMeshModel(headType));
+        dispatch(actions.showAllModelsObj3D(headType));
     }
 };
 

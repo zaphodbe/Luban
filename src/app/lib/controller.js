@@ -66,7 +66,9 @@ class SerialPortClient {
         'taskProgress:generateToolPath': [],
         'taskProgress:generateGcode': [],
         'taskCompleted:generateToolPath': [],
-        'taskCompleted:generateGcode': []
+        'taskCompleted:generateGcode': [],
+        'taskProgress:generateViewPath': [],
+        'taskCompleted:generateViewPath': []
     };
 
     dataSource = '';
@@ -234,6 +236,10 @@ class SerialPortClient {
 
     commitToolPathTask(task) {
         socketController.emit('taskCommit:generateToolPath', task);
+    }
+
+    commitViewPathTask(task) {
+        socketController.emit('taskCommit:generateViewPath', task);
     }
 
     commitGcodeTask(task) {
