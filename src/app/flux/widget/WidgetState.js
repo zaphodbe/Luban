@@ -35,7 +35,7 @@ const DEFAULT_STATE = {
     },
     cnc: {
         default: {
-            widgets: ['cnc-laser-object-list', 'cnc-tool', 'cnc-path', 'cnc-output']
+            widgets: ['cnc-job-type', 'cnc-laser-object-list', 'cnc-tool', 'cnc-path', 'cnc-output']
         }
     },
     developerPanel: {

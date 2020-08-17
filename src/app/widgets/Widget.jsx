@@ -23,6 +23,7 @@ import PrintingOutputWidget from './PrintingOutput';
 import WifiTransport from './WifiTransport';
 import EnclosureWidget from './Enclosure';
 import CncLaserObjectList from './CncLaserObjectList';
+import CNCJobType from './CNCJobType';
 
 const getWidgetByName = (name) => {
     const Widget = {
@@ -49,7 +50,8 @@ const getWidgetByName = (name) => {
         'cnc-tool': CNCToolWidget,
         'cnc-path': CNCPathWidget,
         'cnc-output': CNCOutputWidget,
-        'cnc-laser-object-list': CncLaserObjectList
+        'cnc-laser-object-list': CncLaserObjectList,
+        'cnc-job-type': CNCJobType
     }[name];
     if (!Widget) {
         throw new Error(`Unknown Widget ${name}`);

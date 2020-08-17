@@ -8,12 +8,15 @@ import {
 } from '../actionType';
 import { actions as editorActions, CNC_LASER_STAGE } from '../editor';
 import ToolPathModelGroup from '../models/ToolPathModelGroup';
-import { PAGE_EDITOR } from '../../constants';
+import { JOB_TYPE_3AXIS, PAGE_EDITOR } from '../../constants';
 import SvgModelGroup from '../models/SvgModelGroup';
 
 const ACTION_CHANGE_TOOL_PARAMS = 'cnc/ACTION_CHANGE_TOOL_PARAMS';
 
 const INITIAL_STATE = {
+
+    jobType: JOB_TYPE_3AXIS,
+    jobSize: {},
 
     page: PAGE_EDITOR,
 

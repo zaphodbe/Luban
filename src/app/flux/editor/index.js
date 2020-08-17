@@ -592,6 +592,8 @@ export const actions = {
                         ...modelState,
                         ...toolPathModelTaskInfo
                     };
+                    taskInfo.gcodeConfig.isRotate = true;
+                    taskInfo.gcodeConfig.radius = 12;
                     controller.commitToolPathTask({
                         taskId: taskInfo.modelID,
                         headType: headType,
@@ -620,6 +622,8 @@ export const actions = {
                         ...modelTaskInfo,
                         ...toolPathModelTaskInfo
                     };
+                    taskInfo.gcodeConfig.isRotate = true;
+                    taskInfo.gcodeConfig.radius = 12;
                     controller.commitToolPathTask({
                         taskId: taskInfo.modelID,
                         headType: headType,

@@ -91,7 +91,7 @@ class ToolPathModel {
     }
 
     generateToolPath3D(toolPath) {
-        this.toolPathObj3D = generateToolPathObject3D(toolPath);
+        this.toolPathObj3D = generateToolPathObject3D(toolPath, this.gcodeConfig.isRotate);
     }
 
     loadToolPath(filename) {
