@@ -1,14 +1,5 @@
 import _ from 'lodash';
-
-const EPSILON = 1e-6;
-
-const isEqual = (x, y) => {
-    return Math.abs(x - y) < EPSILON;
-};
-
-const isZero = (x) => {
-    return Math.abs(x) < EPSILON;
-};
+import { isZero, isEqual } from '../../../shared/lib/utils';
 
 class ToolPath {
     constructor(options = {}) {

@@ -167,7 +167,8 @@ export const actions = {
             ? {
                 ...modelDefaultConfigs.gcodeConfig,
                 toolDiameter: toolParams.toolDiameter,
-                toolAngle: toolParams.toolAngle
+                toolAngle: toolParams.toolAngle,
+                toolShaftDiameter: toolParams.toolShaftDiameter
             }
             : modelDefaultConfigs.gcodeConfig;
         const defaultTransformation = `${headType}-${sourceType}-${mode}` === 'cnc-raster-greyscale'
@@ -297,11 +298,12 @@ export const actions = {
 
                 let { gcodeConfig } = modelDefaultConfigs;
                 if (headType === 'cnc') {
-                    const { toolDiameter, toolAngle } = getState().cnc.toolParams;
+                    const { toolDiameter, toolAngle, toolShaftDiameter } = getState().cnc.toolParams;
                     gcodeConfig = {
                         ...gcodeConfig,
                         toolDiameter,
-                        toolAngle
+                        toolAngle,
+                        toolShaftDiameter
                     };
                 }
                 const toolPathModelState = toolPathModelGroup.updateSelectedMode(mode, gcodeConfig);

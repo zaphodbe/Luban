@@ -8,7 +8,7 @@ import {
 } from '../actionType';
 import { actions as editorActions, CNC_LASER_STAGE } from '../editor';
 import ToolPathModelGroup from '../models/ToolPathModelGroup';
-import { JOB_TYPE_3AXIS, PAGE_EDITOR } from '../../constants';
+import { CNC_TOOL_SNAP_V_BIT_CONFIG, JOB_TYPE_3AXIS, PAGE_EDITOR } from '../../constants';
 import SvgModelGroup from '../models/SvgModelGroup';
 
 const ACTION_CHANGE_TOOL_PARAMS = 'cnc/ACTION_CHANGE_TOOL_PARAMS';
@@ -47,8 +47,9 @@ const INITIAL_STATE = {
 
     toolSnap: '',
     toolParams: {
-        toolDiameter: 3.175, // tool diameter (in mm)
-        toolAngle: 30 // tool angle (in degree, defaults to 30° for V-Bit)
+        toolDiameter: CNC_TOOL_SNAP_V_BIT_CONFIG.diameter, // tool diameter (in mm)
+        toolAngle: CNC_TOOL_SNAP_V_BIT_CONFIG.angle, // tool angle (in degree, defaults to 30° for V-Bit)，
+        toolShaftDiameter: CNC_TOOL_SNAP_V_BIT_CONFIG.shaftDiameter // tool angle (in degree, defaults to 30° for V-Bit)
     },
 
     // snapshot state

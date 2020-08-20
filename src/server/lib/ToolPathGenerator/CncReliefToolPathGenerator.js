@@ -4,10 +4,7 @@ import EventEmitter from 'events';
 import Normalizer from './Normalizer';
 import ToolPath from '../ToolPath';
 
-// eslint-disable-next-line no-unused-vars
-const OVERLAP_RATE = 0.75;
-// eslint-disable-next-line no-unused-vars
-const TOOL_H = 0.1;
+const OVERLAP_RATE = 0.55;
 const MAX_DENSITY = 20;
 
 export default class CncReliefToolPathGenerator extends EventEmitter {
@@ -15,7 +12,7 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
         super();
         // const { config, transformation, gcodeConfigPlaceholder } = modelInfo;
         const { config, transformation, gcodeConfig } = modelInfo;
-        const { jogSpeed, workSpeed, plungeSpeed, toolDiameter, toolAngle, targetDepth,
+        const { jogSpeed, workSpeed, plungeSpeed, toolShaftDiameter, toolAngle, targetDepth,
             stepDown, safetyHeight, stopHeight, density, isRotate, radius } = gcodeConfig;
 
         const { invert } = config;
@@ -35,7 +32,7 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
 
         this.toolPath = new ToolPath({ isRotate, radius });
 
-        const maxDensity = this.calMaxDensity(toolDiameter, toolAngle, transformation);
+        const maxDensity = this.calMaxDensity(toolShaftDiameter, transformation);
         this.density = Math.min(density, maxDensity);
 
         this.targetWidth = Math.round(transformation.width * this.density);
@@ -93,12 +90,11 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
     /**
      * Calculate the max density
      */
-    calMaxDensity(toolDiameter, toolAngle, transformation) {
+    calMaxDensity(toolShaftDiameter, toolAngle, transformation) {
         const maxDensity1 = Math.floor(Math.sqrt(5000000 / transformation.width / transformation.height));
-        // const h = Math.tan((90 - toolAngle / 2) / 180 * Math.PI) * toolDiameter / 2;
-        // const lineWidth = TOOL_H > h ? toolDiameter * OVERLAP_RATE : TOOL_H / h * toolDiameter;
-        // const maxDensity2 = 1 / lineWidth;
-        return Math.min(MAX_DENSITY, maxDensity1);
+        const lineWidth = toolShaftDiameter * OVERLAP_RATE;
+        const maxDensity2 = 1 / lineWidth;
+        return Math.min(MAX_DENSITY, maxDensity1, maxDensity2);
     }
 
     calc(grey) {

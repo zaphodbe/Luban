@@ -220,8 +220,9 @@ const generateCNCDefaults = (mode, sourceType) => {
             // Default movement mode is greyscale-line
             // greyscale-line: workSpeed: 500, dwellTime: null
             // greyscale-dot: workSpeed: null, dwellTime: 42
-            toolDiameter: 3.175, // tool diameter (in mm)
+            toolDiameter: 0.1, // tool diameter (in mm)
             toolAngle: 30, // tool angle (in degree, defaults to 30° for V-Bit)
+            toolShaftDiameter: 3.175,
             targetDepth: 2.0,
             stepDown: 0.5,
             safetyHeight: 1.0,
@@ -234,8 +235,9 @@ const generateCNCDefaults = (mode, sourceType) => {
         };
     } else {
         gcodeConfig = {
-            toolDiameter: 3.175, // tool diameter (in mm)
+            toolDiameter: 0.1, // tool diameter (in mm)
             toolAngle: 30, // tool angle (in degree, defaults to 30° for V-Bit)
+            toolShaftDiameter: 3.175, // tool angle (in degree, defaults to 30° for V-Bit)
             optimizePath: false,
             fillEnabled: DEFAULT_FILL_ENABLED,
             fillDensity: DEFAULT_FILL_DENSITY,

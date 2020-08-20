@@ -6,7 +6,7 @@ import { getBBox } from '../../widgets/CncLaserSvgEditor/element-utils';
 import { remapElement } from '../../widgets/CncLaserSvgEditor/element-recalculate';
 import { NS } from '../../widgets/CncLaserSvgEditor/lib/namespaces';
 import { getRotationAngle } from '../../widgets/CncLaserSvgEditor/element-transform';
-import { isZero } from '../../lib/utils';
+import { isZero } from '../../../shared/lib/utils';
 
 const coordGmModelToSvg = (size, transformation) => {
     // eslint-disable-next-line no-unused-vars

@@ -5,7 +5,7 @@ import { DEFAULT_FILL_COLOR } from '../../constants/svg-constatns';
 // eslint-disable-next-line no-unused-vars
 import PathTagParser from '../../../shared/lib/SVGParser/PathTagParser';
 import AttributesParser from '../../../shared/lib/SVGParser/AttributesParser';
-import { isZero } from '../../lib/utils';
+import { isZero } from '../../../shared/lib/utils';
 
 function toXml(str) {
     // &apos; is ok in XML, but not HTML

@@ -74,13 +74,13 @@ export default class CNCToolPathGenerator extends EventEmitter {
         if (pathType === 'path') {
             // empty
         } else if (pathType === 'outline') {
-            const { targetDepth, toolAngle, toolDiameter } = options;
+            const { targetDepth, toolAngle, toolShaftDiameter } = options;
 
             // radius needed to carve to `targetDepth`
             const radiusNeeded = (toolAngle === 180)
-                ? (toolDiameter * 0.5)
+                ? (toolShaftDiameter * 0.5)
                 : (targetDepth * Math.tan(toolAngle / 2 * Math.PI / 180));
-            const off = Math.min(radiusNeeded, toolDiameter * 0.5);
+            const off = Math.min(radiusNeeded, toolShaftDiameter * 0.5);
 
             for (let i = 0; i < svg.shapes.length; i++) {
                 const shape = svg.shapes[i];
@@ -152,7 +152,7 @@ export default class CNCToolPathGenerator extends EventEmitter {
         const { gcodeConfig } = modelInfo;
         const {
             pathType = 'path',
-            toolDiameter, toolAngle,
+            toolDiameter, toolAngle, toolShaftDiameter,
             targetDepth, stepDown,
             enableTab = false, tabWidth, tabHeight, tabSpace,
             jogSpeed, workSpeed, plungeSpeed,
@@ -168,7 +168,8 @@ export default class CNCToolPathGenerator extends EventEmitter {
             fillDensity: fillDensity || 5,
             targetDepth,
             toolAngle,
-            toolDiameter
+            toolDiameter,
+            toolShaftDiameter
         });
 
         const normalizer = new Normalizer(
