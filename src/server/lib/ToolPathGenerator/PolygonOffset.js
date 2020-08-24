@@ -74,6 +74,21 @@ class PolygonOffset {
         this._processContour();
     }
 
+    ext(dist) {
+        if (!dist || dist < 0) {
+            throw new Error('Cannot apply negative margin to the line');
+        }
+        if (dist === 0) {
+            return this.vertices;
+        }
+        this._setDistance(dist);
+        if (this.vertices.length === 1) {
+            return this._orientRings([this.offsetPoint()]);
+        } else {
+            return [this.margin(dist)[0], this.padding(dist, false)[0]];
+        }
+    }
+
     offset(dist) {
         if (!dist || dist === 0) {
             return this.vertices;
@@ -82,7 +97,7 @@ class PolygonOffset {
         }
     }
 
-    margin(dist) {
+    margin(dist, order) {
         if (!dist || dist < 0) {
             throw new Error('Cannot apply negative margin to the line');
         }
@@ -98,11 +113,11 @@ class PolygonOffset {
             if (this.vertices.length > 1 && equals(this.vertices[0], this.vertices[this.vertices.length - 1])) {
                 union = martinez.union([[this.vertices]], union);
             }
-            return this._orientRings(union[0]);
+            return this._orientRings(union[0], order);
         }
     }
 
-    padding(dist) {
+    padding(dist, order) {
         if (!dist || dist < 0) {
             throw new Error('Cannot apply negative padding to the line');
         }
@@ -117,7 +132,7 @@ class PolygonOffset {
 
         const union = this.offsetLines(this._distance);
         const diff = martinez.diff(this.margin(dist), union);
-        return this._orientRings(diff[0]);
+        return this._orientRings(diff[0], order);
     }
 
     _setDistance(dist) {
@@ -135,7 +150,7 @@ class PolygonOffset {
         return newVertices;
     }
 
-    _orientRings(vertices) {
+    _orientRings(vertices, order = true) {
         if (!isArray(vertices) || vertices.length === 0 || !isArray(vertices[0])) {
             return [[]];
         }
@@ -149,7 +164,7 @@ class PolygonOffset {
                 area += pt1[0] * pt2[1];
                 area -= pt2[0] * pt1[1];
             }
-            if (area > 0) {
+            if ((area > 0 && order) || (area < 0 && !order)) {
                 ring.reverse();
             }
         } else {

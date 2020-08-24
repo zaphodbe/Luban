@@ -4,6 +4,7 @@
  */
 
 import EventEmitter from 'events';
+import * as martinez from 'martinez-polygon-clipping';
 import PolygonOffset from './PolygonOffset';
 import { flip, scale, rotate, translate } from '../../../shared/lib/SVGParser';
 import Toolpath from '../ToolPath';
@@ -70,7 +71,7 @@ function getFirstPointFromSvg(svg) {
  * ToolPathGenerator
  */
 export default class CNCToolPathGenerator extends EventEmitter {
-    processPathType(svg, pathType, options) {
+    _processPathType(svg, pathType, options) {
         if (pathType === 'path') {
             // empty
         } else if (pathType === 'outline') {
@@ -147,21 +148,38 @@ export default class CNCToolPathGenerator extends EventEmitter {
         }
     }
 
-    // Static method to generate `ToolPath` from SVG
-    generateToolPath(svg, modelInfo) {
-        const { gcodeConfig } = modelInfo;
+    _processSVG(svg, modelInfo) {
+        const { transformation, sourceHeight, sourceType, sourceWidth, gcodeConfig } = modelInfo;
+
         const {
             pathType = 'path',
             toolDiameter, toolAngle, toolShaftDiameter,
-            targetDepth, stepDown,
-            enableTab = false, tabWidth, tabHeight, tabSpace,
-            jogSpeed, workSpeed, plungeSpeed,
-            fillEnabled, fillDensity, isRotate, radius
+            targetDepth, fillEnabled, fillDensity
         } = gcodeConfig;
-        let { safetyHeight, stopHeight } = gcodeConfig;
+
+        const originHeight = sourceHeight;
+        const originWidth = sourceWidth;
+        const targetHeight = transformation.height;
+        const targetWidth = transformation.width;
+
+        // rotation: degree and counter-clockwise
+        const rotationZ = transformation.rotationZ;
+        const flipFlag = transformation.flip;
+
+        if (sourceType !== 'dxf') {
+            flip(svg, 1);
+        }
+
+        flip(svg, flipFlag);
+        scale(svg, {
+            x: targetWidth / originWidth,
+            y: targetHeight / originHeight
+        });
+        rotate(svg, rotationZ);
+        translate(svg, -svg.viewBox[0], -svg.viewBox[1]);
 
         // Process path according to path type
-        this.processPathType(svg, pathType, {
+        this._processPathType(svg, pathType, {
             width: svg.viewBox[2],
             height: svg.viewBox[3],
             fillEnabled: fillEnabled || true,
@@ -171,6 +189,18 @@ export default class CNCToolPathGenerator extends EventEmitter {
             toolDiameter,
             toolShaftDiameter
         });
+    }
+
+    // Static method to generate `ToolPath` from SVG
+    generateToolPath(svg, modelInfo) {
+        const { isRotate, diameter, gcodeConfig, transformation } = modelInfo;
+        const radius = diameter / 2;
+        const {
+            targetDepth, stepDown,
+            enableTab = false, tabWidth, tabHeight, tabSpace,
+            jogSpeed, workSpeed, plungeSpeed
+        } = gcodeConfig;
+        let { safetyHeight, stopHeight } = gcodeConfig;
 
         const normalizer = new Normalizer(
             'Center',
@@ -178,7 +208,8 @@ export default class CNCToolPathGenerator extends EventEmitter {
             svg.viewBox[0] + svg.viewBox[2],
             svg.viewBox[1],
             svg.viewBox[1] + svg.viewBox[3],
-            { x: 1, y: 1 }
+            { x: 1, y: 1 },
+            { x: isRotate ? transformation.positionX : 0, y: 0 }
         );
 
         const toolPath = new Toolpath({ isRotate, radius });
@@ -299,31 +330,11 @@ export default class CNCToolPathGenerator extends EventEmitter {
 
     generateToolPathObj(svg, modelInfo) {
         // const { transformation, source } = modelInfo;
-        const { headType, mode, transformation, sourceHeight, sourceWidth, sourceType, gcodeConfig } = modelInfo;
+        const { headType, mode, transformation, gcodeConfig, isRotate } = modelInfo;
 
         const { positionX, positionY, positionZ } = transformation;
 
-        const originHeight = sourceHeight;
-        const originWidth = sourceWidth;
-        const targetHeight = transformation.height;
-        const targetWidth = transformation.width;
-
-        // rotation: degree and counter-clockwise
-        const rotationZ = transformation.rotationZ;
-        const flipFlag = transformation.flip;
-
-        // TODO: add pipelines to filter & process data
-        if (sourceType !== 'dxf') {
-            flip(svg, 1);
-        }
-
-        flip(svg, flipFlag);
-        scale(svg, {
-            x: targetWidth / originWidth,
-            y: targetHeight / originHeight
-        });
-        rotate(svg, rotationZ);
-        translate(svg, -svg.viewBox[0], -svg.viewBox[1]);
+        this._processSVG(svg, modelInfo);
 
         const toolPath = this.generateToolPath(svg, modelInfo);
 
@@ -343,7 +354,74 @@ export default class CNCToolPathGenerator extends EventEmitter {
             positionX: positionX,
             positionY: positionY,
             positionZ: positionZ,
-            boundingBox: boundingBox
+            boundingBox: boundingBox,
+            isRotate: isRotate
+        };
+    }
+
+    generateViewPathObj(svg, modelInfo) {
+        const { transformation, gcodeConfig } = modelInfo;
+
+        const {
+            toolAngle, toolShaftDiameter,
+            targetDepth
+        } = gcodeConfig;
+
+        const { positionX, positionY, positionZ, width, height } = transformation;
+
+
+        this._processSVG(svg, modelInfo);
+
+        // radius needed to carve to `targetDepth`
+        const radiusNeeded = (toolAngle === 180)
+            ? (toolShaftDiameter * 0.5)
+            : (targetDepth * Math.tan(toolAngle / 2 * Math.PI / 180));
+        const off = Math.min(radiusNeeded, toolShaftDiameter * 0.5);
+
+        let progress = 0;
+        let viewPath = [[[]]];
+        // scan shapes
+        for (let i = 0; i < svg.shapes.length; i++) {
+            const shape = svg.shapes[i];
+            if (!shape.visibility) {
+                continue;
+            }
+
+            for (let j = 0; j < shape.paths.length; j++) {
+                const path = shape.paths[j];
+                if (path.points.length === 0) {
+                    continue;
+                }
+
+                const result = new PolygonOffset(path.points).ext(off);
+                viewPath = martinez.union([viewPath], result)[0];
+            }
+            const p = (i + 1) / svg.shapes.length;
+            if (p - progress > 0.05) {
+                progress = p;
+                this.emit('progress', progress);
+            }
+        }
+
+        return {
+            plane: 'XY',
+            positionX: positionX,
+            positionY: positionY,
+            positionZ: positionZ,
+            targetDepth: targetDepth,
+            boundingBox: {
+                min: {
+                    x: positionX - width / 2,
+                    y: positionY - width / 2,
+                    z: -targetDepth
+                },
+                max: {
+                    x: positionX + width / 2,
+                    y: positionY + height / 2,
+                    z: 0
+                }
+            },
+            data: viewPath
         };
     }
 }

@@ -1,4 +1,4 @@
-import TaskManager, { TASK_TYPE_GENERATE_GCODE, TASK_TYPE_GENERATE_TOOLPATH } from './TaskManager';
+import TaskManager, { Task, TASK_TYPE_GENERATE_GCODE, TASK_TYPE_GENERATE_TOOLPATH } from './TaskManager';
 
 const instance = new TaskManager();
 
@@ -20,11 +20,11 @@ const stop = () => {
 };
 
 const addGenerateToolPathTask = (socket, task) => {
-    instance.addTask(socket, task.data, task.taskId, task.headType, TASK_TYPE_GENERATE_TOOLPATH);
+    instance.addTask(new Task(task.taskId, socket, task.data, TASK_TYPE_GENERATE_TOOLPATH, task.headType));
 };
 
 const addGenerateGcodeTask = (socket, task) => {
-    instance.addTask(socket, task.data, task.taskId, task.headType, TASK_TYPE_GENERATE_GCODE);
+    instance.addTask(new Task(task.taskId, socket, task.data, TASK_TYPE_GENERATE_GCODE, task.headType));
 };
 
 export default {

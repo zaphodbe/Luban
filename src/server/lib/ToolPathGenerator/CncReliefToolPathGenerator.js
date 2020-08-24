@@ -4,16 +4,18 @@ import EventEmitter from 'events';
 import Normalizer from './Normalizer';
 import ToolPath from '../ToolPath';
 
-const OVERLAP_RATE = 0.55;
+const OVERLAP_RATE = 0.5;
 const MAX_DENSITY = 20;
 
 export default class CncReliefToolPathGenerator extends EventEmitter {
     constructor(modelInfo, modelPath) {
         super();
         // const { config, transformation, gcodeConfigPlaceholder } = modelInfo;
-        const { config, transformation, gcodeConfig } = modelInfo;
-        const { jogSpeed, workSpeed, plungeSpeed, toolShaftDiameter, toolAngle, targetDepth,
-            stepDown, safetyHeight, stopHeight, density, isRotate, radius } = gcodeConfig;
+        const { config, transformation, gcodeConfig, isRotate, diameter } = modelInfo;
+        const { jogSpeed, workSpeed, plungeSpeed, toolDiameter, toolAngle, targetDepth,
+            stepDown, safetyHeight, stopHeight, density } = gcodeConfig;
+
+        const radius = diameter / 2;
 
         const { invert } = config;
 
@@ -32,7 +34,7 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
 
         this.toolPath = new ToolPath({ isRotate, radius });
 
-        const maxDensity = this.calMaxDensity(toolShaftDiameter, transformation);
+        const maxDensity = this.calMaxDensity(toolDiameter, transformation);
         this.density = Math.min(density, maxDensity);
 
         this.targetWidth = Math.round(transformation.width * this.density);
@@ -90,9 +92,9 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
     /**
      * Calculate the max density
      */
-    calMaxDensity(toolShaftDiameter, toolAngle, transformation) {
+    calMaxDensity(toolDiameter, transformation) {
         const maxDensity1 = Math.floor(Math.sqrt(5000000 / transformation.width / transformation.height));
-        const lineWidth = toolShaftDiameter * OVERLAP_RATE;
+        const lineWidth = toolDiameter * OVERLAP_RATE;
         const maxDensity2 = 1 / lineWidth;
         return Math.min(MAX_DENSITY, maxDensity1, maxDensity2);
     }
@@ -140,7 +142,7 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
         let currentZ = this.initialZ;
         let progress = 0;
         let cutDownTimes = 0;
-        const { headType, mode, transformation, gcodeConfig } = this.modelInfo;
+        const { headType, mode, transformation, gcodeConfig, isRotate } = this.modelInfo;
         const { positionX, positionY, positionZ } = transformation;
         const normalizer = new Normalizer(
             'Center',
@@ -148,7 +150,8 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
             this.targetWidth,
             0,
             this.targetHeight,
-            { x: 1 / this.density, y: 1 / this.density }
+            { x: 1 / this.density, y: 1 / this.density },
+            { x: isRotate ? transformation.positionX : 0, y: 0 }
         );
 
         const normalizedX0 = normalizer.x(0);
@@ -209,8 +212,8 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
 
                     if (z < curDepth + this.stepDown) {
                         move0Z(zState);
-                        zState = null;
 
+                        zState = null;
                         z = Math.max(curDepth, z);
                         if (currentZ === z) {
                             this.toolPath.move1Y(gY, this.workSpeed);
@@ -269,7 +272,8 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
             positionX: positionX,
             positionY: positionY,
             positionZ: positionZ,
-            boundingBox: boundingBox
+            boundingBox: boundingBox,
+            isRotate: isRotate
         };
     };
 }

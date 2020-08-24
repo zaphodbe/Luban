@@ -16,7 +16,9 @@ const ACTION_CHANGE_TOOL_PARAMS = 'cnc/ACTION_CHANGE_TOOL_PARAMS';
 const INITIAL_STATE = {
 
     jobType: JOB_TYPE_3AXIS,
-    jobSize: {},
+    jobSize: {
+        diameter: 24
+    },
 
     page: PAGE_EDITOR,
 

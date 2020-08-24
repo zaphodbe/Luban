@@ -6,7 +6,7 @@ import { threejsModelActions } from './threejs-model';
 import { svgModelActions } from './svg-model';
 import { baseActions, checkIsAllModelsPreviewed, computeTransformationSizeForTextVector } from './base';
 import { SVG_EVENT_ADD, SVG_EVENT_MOVE, SVG_EVENT_SELECT } from '../../constants/svg-constatns';
-import { PAGE_EDITOR, PAGE_PROCESS } from '../../constants';
+import { JOB_TYPE_4AXIS, PAGE_EDITOR, PAGE_PROCESS } from '../../constants';
 import { controller } from '../../lib/controller';
 
 const getCount = (() => {
@@ -584,6 +584,10 @@ export const actions = {
         if (page === PAGE_EDITOR) {
             return;
         }
+
+        const { jobType, jobSize } = getState()[headType];
+        const { diameter = 0 } = jobSize || {};
+
         if (isProcess || autoPreviewEnabled) {
             const modelState = modelGroup.getSelectedModel()
                 .getTaskInfo();
@@ -592,10 +596,10 @@ export const actions = {
                 if (toolPathModelTaskInfo && toolPathModelTaskInfo.needPreview && !toolPathModelTaskInfo.hideFlag) {
                     const taskInfo = {
                         ...modelState,
-                        ...toolPathModelTaskInfo
+                        ...toolPathModelTaskInfo,
+                        isRotate: jobType === JOB_TYPE_4AXIS,
+                        diameter: diameter
                     };
-                    taskInfo.gcodeConfig.isRotate = true;
-                    taskInfo.gcodeConfig.radius = 12;
                     controller.commitToolPathTask({
                         taskId: taskInfo.modelID,
                         headType: headType,
@@ -615,6 +619,10 @@ export const actions = {
         if (page === PAGE_EDITOR) {
             return;
         }
+
+        const { jobType, jobSize } = getState()[headType];
+        const { diameter = 0 } = jobSize || {};
+
         if (isProcess || autoPreviewEnabled) {
             for (const model of modelGroup.getModels()) {
                 const modelTaskInfo = model.getTaskInfo();
@@ -622,10 +630,10 @@ export const actions = {
                 if (toolPathModelTaskInfo && toolPathModelTaskInfo.needPreview && !toolPathModelTaskInfo.hideFlag) {
                     const taskInfo = {
                         ...modelTaskInfo,
-                        ...toolPathModelTaskInfo
+                        ...toolPathModelTaskInfo,
+                        isRotate: jobType === JOB_TYPE_4AXIS,
+                        diameter: diameter
                     };
-                    taskInfo.gcodeConfig.isRotate = true;
-                    taskInfo.gcodeConfig.radius = 12;
                     controller.commitToolPathTask({
                         taskId: taskInfo.modelID,
                         headType: headType,

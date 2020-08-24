@@ -32,27 +32,29 @@ const motionColor = {
 };
 
 class ToolPathRenderer {
-    render(toolPath, isRotate = false) {
-        const { headType, mode, movementMode, data } = toolPath;
-
-        this.isRotate = isRotate;
+    render(toolPath) {
+        const { headType, mode, movementMode, data, isRotate } = toolPath;
 
         // now only support cnc&laser
         if (!['cnc', 'laser'].includes(headType)) {
             return null;
         }
+        let obj;
         if (headType === 'laser') {
             if (mode === 'greyscale' && movementMode === 'greyscale-dot') {
-                return this.parseToPoints(data);
+                obj = this.parseToPoints(data);
             } else {
-                return this.parseToLine(data);
+                obj = this.parseToLine(data);
             }
         } else {
-            return this.parseToLine(data);
+            obj = this.parseToLine(data, isRotate);
         }
+        obj.position.set(isRotate ? 0 : toolPath.positionX, toolPath.positionY, 0);
+        obj.scale.set(1, 1, 1);
+        return obj;
     }
 
-    parseToLine(data) {
+    parseToLine(data, isRotate) {
         const positions = [];
         const gCodes = [];
 
@@ -77,6 +79,19 @@ class ToolPathRenderer {
             item.Z !== undefined && (newState.Z = item.Z);
             item.B !== undefined && (newState.B = item.B);
 
+            if ((state.G === 1) && (newState.G === 0)) {
+                const res = this.calculateXYZ({
+                    X: state.X,
+                    Y: state.Y,
+                    Z: state.Z,
+                    B: state.B
+                }, isRotate);
+                positions.push(res.X);
+                positions.push(res.Y);
+                positions.push(res.Z);
+                gCodes.push(newState.G);
+            }
+
             if (state.G !== newState.G
                 || state.X !== newState.X
                 || state.Y !== newState.Y
@@ -90,16 +105,11 @@ class ToolPathRenderer {
                         Y: state.Y + (newState.Y - state.Y) / segCount * j,
                         Z: state.Z + (newState.Z - state.Z) / segCount * j,
                         B: state.B + (newState.B - state.B) / segCount * j
-                    });
+                    }, isRotate);
                     positions.push(res.X);
                     positions.push(res.Y);
                     positions.push(res.Z);
-
-                    if (state.G === 0 && newState.G === 1) {
-                        gCodes.push(0);
-                    } else {
-                        gCodes.push(newState.G);
-                    }
+                    gCodes.push(newState.G);
                 }
                 state = newState;
             }
@@ -161,8 +171,8 @@ class ToolPathRenderer {
         return new THREE.Points(geometry, material);
     }
 
-    calculateXYZ(state) {
-        if (this.isRotate) {
+    calculateXYZ(state, isRotate = false) {
+        if (isRotate) {
             return {
                 X: state.Z * Math.sin(state.B / 180 * Math.PI) + state.X * Math.cos(state.B / 180 * Math.PI),
                 Y: state.Y,

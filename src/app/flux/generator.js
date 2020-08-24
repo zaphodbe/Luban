@@ -57,13 +57,9 @@ const generateImageObject3D = (imageSrc, width, height, anchor) => {
     return object3D;
 };
 
-const generateToolPathObject3D = (toolPath, isRotate) => {
+const generateToolPathObject3D = (toolPath) => {
     const toolPathRenderer = new ToolPathRenderer();
-    const object3D = toolPathRenderer.render(toolPath, isRotate);
-
-    object3D.position.set(toolPath.positionX, toolPath.positionY, 0);
-    object3D.scale.set(1, 1, 1);
-    return object3D;
+    return toolPathRenderer.render(toolPath);
 };
 
 export { generateGcodeStr, generateToolPathObject3D, generateImageObject3D };
