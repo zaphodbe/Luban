@@ -225,3 +225,16 @@ export const IMAGE_WIFI_WAITING = '../../images/connection/ic_WI-FI_64x64.png';
 export const IMAGE_WIFI_WARNING = '../../images/ic_warning-64x64.png';
 
 export const LASER_MOCK_PLATE_HEIGHT = 6;
+
+
+// Model
+export const SOURCE_TYPE_3DP = '3dp';
+export const SOURCE_TYPE_SVG = 'svg';
+export const SOURCE_TYPE_TEXT = 'text';
+export const SOURCE_TYPE_RASTER = 'raster';
+export const SOURCE_TYPE_DXF = 'dxf';
+export const SOURCE_TYPE_IMAGE3D = 'image3d';
+
+export const PROCESS_MODE_BW = 'bw';
+export const PROCESS_MODE_VECTOR = 'vector';
+export const PROCESS_MODE_GREYSCALE = 'greyscale';

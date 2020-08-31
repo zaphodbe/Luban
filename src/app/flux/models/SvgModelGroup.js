@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 import _ from 'lodash';
 import { DATA_PREFIX } from '../../constants';
-import { DEFAULT_SCALE, SVG_EVENT_ADD, SVG_EVENT_MOVE, SVG_EVENT_SELECT } from '../../constants/svg-constatns';
+import { DEFAULT_SCALE, SVG_EVENT_ADD, SVG_EVENT_MOVE, SVG_EVENT_SELECT } from '../../constants/svg';
 import { getBBox } from '../../widgets/CncLaserSvgEditor/element-utils';
 import { remapElement } from '../../widgets/CncLaserSvgEditor/element-recalculate';
 import { NS } from '../../widgets/CncLaserSvgEditor/lib/namespaces';

@@ -5,7 +5,7 @@ import { checkParams, DEFAULT_TEXT_CONFIG, generateModelDefaultConfigs, sizeMode
 import { threejsModelActions } from './threejs-model';
 import { svgModelActions } from './svg-model';
 import { baseActions, checkIsAllModelsPreviewed, computeTransformationSizeForTextVector } from './base';
-import { SVG_EVENT_ADD, SVG_EVENT_MOVE, SVG_EVENT_SELECT } from '../../constants/svg-constatns';
+import { SVG_EVENT_ADD, SVG_EVENT_MOVE, SVG_EVENT_SELECT } from '../../constants/svg';
 import { JOB_TYPE_4AXIS, PAGE_EDITOR, PAGE_PROCESS } from '../../constants';
 import { controller } from '../../lib/controller';
 
@@ -25,6 +25,8 @@ const getSourceType = (fileName) => {
         sourceType = 'svg';
     } else if (extname === '.dxf') {
         sourceType = 'dxf';
+    } else if (extname === '.stl') {
+        sourceType = 'image3d';
     } else {
         sourceType = 'raster';
     }
@@ -109,6 +111,7 @@ export const actions = {
         api.uploadImage(formData)
             .then((res) => {
                 const { width, height, originalName, uploadName } = res.body;
+                console.log(width, height, originalName, uploadName);
                 dispatch(actions.generateModel(headType, originalName, uploadName, width, height, mode));
             })
             .catch((err) => {
@@ -214,6 +217,8 @@ export const actions = {
         api.processImage(options)
             .then((res) => {
                 options.processImageName = res.body.filename;
+
+                console.log(options.processImageName);
 
                 dispatch(svgModelActions.generateSvgModel(headType, options));
                 dispatch(threejsModelActions.generateThreejsModel(headType, options));

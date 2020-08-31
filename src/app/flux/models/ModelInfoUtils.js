@@ -1,4 +1,12 @@
-import { ABSENT_VALUE } from '../../constants';
+import {
+    ABSENT_VALUE,
+    PROCESS_MODE_BW,
+    PROCESS_MODE_GREYSCALE,
+    PROCESS_MODE_VECTOR, SOURCE_TYPE_DXF,
+    SOURCE_TYPE_IMAGE3D,
+    SOURCE_TYPE_RASTER,
+    SOURCE_TYPE_SVG, SOURCE_TYPE_TEXT
+} from '../../constants';
 
 const DEFAULT_FILL_ENABLED = false;
 const DEFAULT_FILL_DENSITY = 4;
@@ -30,7 +38,7 @@ const checkParams = (headType, sourceType, mode) => {
     if (headType !== 'laser' && headType !== 'cnc' && headType !== '3dp') {
         return false;
     }
-    if (!['3d', 'raster', 'svg', 'dxf', 'text'].includes(sourceType)) {
+    if (!['3d', 'raster', 'svg', 'dxf', 'text', 'image3d'].includes(sourceType)) {
         return false;
     }
     if (!['bw', 'greyscale', 'vector', 'trace'].includes(mode)) {
@@ -43,14 +51,14 @@ const generateLaserDefaults = (mode, sourceType) => {
     let config = null;
     let gcodeConfig = null;
     switch (mode) {
-        case 'bw': {
+        case PROCESS_MODE_BW: {
             config = {
                 invert: false,
                 bwThreshold: 168
             };
             break;
         }
-        case 'greyscale': {
+        case PROCESS_MODE_GREYSCALE: {
             config = {
                 invert: false,
                 contrast: 50,
@@ -61,9 +69,9 @@ const generateLaserDefaults = (mode, sourceType) => {
             };
             break;
         }
-        case 'vector': {
+        case PROCESS_MODE_VECTOR: {
             switch (sourceType) {
-                case 'raster': {
+                case SOURCE_TYPE_RASTER: {
                     config = {
                         vectorThreshold: 128,
                         invert: false,
@@ -71,32 +79,24 @@ const generateLaserDefaults = (mode, sourceType) => {
                     };
                     break;
                 }
-                case 'svg': {
+                case SOURCE_TYPE_SVG: {
                     config = {
                     };
                     break;
                 }
-                case 'dxf': {
+                case SOURCE_TYPE_DXF: {
                     config = {
 
                     };
                     break;
                 }
-                case 'text': {
+                case SOURCE_TYPE_TEXT: {
                     config = { ...DEFAULT_TEXT_CONFIG };
                     break;
                 }
                 default:
                     break;
             }
-            break;
-        }
-        case 'trace': {
-            config = {
-                optimizePath: false,
-                fillEnabled: DEFAULT_FILL_ENABLED,
-                fillDensity: DEFAULT_FILL_DENSITY
-            };
             break;
         }
         default:
@@ -175,9 +175,24 @@ const generateCNCDefaults = (mode, sourceType) => {
     let gcodeConfig = null;
     switch (mode) {
         case 'greyscale':
-            config = {
-                invert: true
-            };
+            switch (sourceType) {
+                case SOURCE_TYPE_IMAGE3D:
+                    config = {
+                        invert: false,
+                        plane: 'XY',
+                        minGray: 0,
+                        maxGray: 255,
+                        sliceDensity: 10,
+                        extensionX: 0,
+                        extensionY: 0
+                    };
+                    break;
+                default:
+                    config = {
+                        invert: true
+                    };
+                    break;
+            }
             break;
         case 'vector':
             switch (sourceType) {

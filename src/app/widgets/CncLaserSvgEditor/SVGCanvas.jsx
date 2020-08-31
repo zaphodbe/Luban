@@ -25,7 +25,7 @@ import {
     SVG_EVENT_MODE,
     SVG_EVENT_MOVE,
     SVG_EVENT_SELECT, DEFAULT_FILL_COLOR
-} from '../../constants/svg-constatns';
+} from '../../constants/svg';
 import { library } from './lib/ext-shapes';
 
 
