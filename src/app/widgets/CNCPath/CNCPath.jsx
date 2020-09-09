@@ -2,14 +2,16 @@ import React, { PureComponent } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
-import { PAGE_EDITOR, PAGE_PROCESS } from '../../constants';
+import { PAGE_EDITOR, PAGE_PROCESS, SOURCE_TYPE_IMAGE3D } from '../../constants';
 import i18n from '../../lib/i18n';
 import Transformation from '../CncLaserShared/Transformation';
 import GcodeParameters from '../CncLaserShared/GcodeParameters';
 import TextParameters from '../CncLaserShared/TextParameters';
 import VectorParameters from './VectorParameters';
+import Image3dParameters from './Image3dParameters';
 import ImageProcessMode from './ImageProcessMode';
 import ReliefGcodeParameters from './gcodeconfig/ReliefGcodeParameters';
+import Image3DGcodeParameters from './gcodeconfig/Image3DGcodeParameters';
 import { actions as editorActions } from '../../flux/editor';
 
 class CNCPath extends PureComponent {
@@ -30,6 +32,7 @@ class CNCPath extends PureComponent {
         printOrder: PropTypes.number.isRequired,
         updateSelectedModelTransformation: PropTypes.func.isRequired,
         updateSelectedModelFlip: PropTypes.func.isRequired,
+        updateSelectedModelConfig: PropTypes.func.isRequired,
         updateSelectedModelGcodeConfig: PropTypes.func.isRequired,
         updateSelectedModelPrintOrder: PropTypes.func.isRequired,
         updateSelectedModelTextConfig: PropTypes.func.isRequired,
@@ -55,7 +58,7 @@ class CNCPath extends PureComponent {
             selectedModelID, selectedModelHideFlag, sourceType, mode,
             showOrigin,
             transformation, updateSelectedModelTransformation,
-            gcodeConfig, updateSelectedModelGcodeConfig,
+            gcodeConfig, updateSelectedModelGcodeConfig, updateSelectedModelConfig,
             printOrder, updateSelectedModelPrintOrder, config, updateSelectedModelTextConfig,
             onModelAfterTransform, changeSelectedModelShowOrigin, changeSelectedModelMode, updateSelectedModelFlip
         } = this.props;
@@ -64,6 +67,7 @@ class CNCPath extends PureComponent {
         const isRasterGreyscale = (sourceType === 'raster' && mode === 'greyscale');
         const isSvgVector = ((sourceType === 'svg' || sourceType === 'dxf') && mode === 'vector');
         const isTextVector = (sourceType === 'text' && mode === 'vector');
+        const isImage3d = (sourceType === SOURCE_TYPE_IMAGE3D);
         const isEditor = page === PAGE_EDITOR;
         const isProcess = page === PAGE_PROCESS;
         const isProcessMode = isEditor && sourceType === 'raster';
@@ -101,6 +105,13 @@ class CNCPath extends PureComponent {
                                 updateSelectedModelTextConfig={updateSelectedModelTextConfig}
                             />
                         )}
+                        {isEditor && isImage3d && (
+                            <Image3dParameters
+                                disabled={selectedModelHideFlag}
+                                config={config}
+                                updateSelectedModelConfig={updateSelectedModelConfig}
+                            />
+                        )}
                         {isProcess && (isSvgVector || isTextVector) && (
                             <VectorParameters
                                 disabled={selectedModelHideFlag}
@@ -108,6 +119,11 @@ class CNCPath extends PureComponent {
                         )}
                         {isProcess && isRasterGreyscale && (
                             <ReliefGcodeParameters
+                                disabled={selectedModelHideFlag}
+                            />
+                        )}
+                        {isProcess && isImage3d && (
+                            <Image3DGcodeParameters
                                 disabled={selectedModelHideFlag}
                             />
                         )}
@@ -159,6 +175,7 @@ const mapDispatchToProps = (dispatch) => {
     return {
         updateSelectedModelTransformation: (params) => dispatch(editorActions.updateSelectedModelTransformation('cnc', params)),
         updateSelectedModelFlip: (params) => dispatch(editorActions.updateSelectedModelFlip('cnc', params)),
+        updateSelectedModelConfig: (params) => dispatch(editorActions.updateSelectedModelConfig('cnc', params)),
         updateSelectedModelGcodeConfig: (params) => dispatch(editorActions.updateSelectedModelGcodeConfig('cnc', params)),
         updateSelectedModelPrintOrder: (printOrder) => dispatch(editorActions.updateSelectedModelPrintOrder('cnc', printOrder)),
         updateSelectedModelTextConfig: (config) => dispatch(editorActions.updateSelectedModelTextConfig('cnc', config)),

@@ -29,6 +29,7 @@ class Output extends PureComponent {
         workflowState: PropTypes.string.isRequired,
         gcodeFile: PropTypes.object,
         generateGcode: PropTypes.func.isRequired,
+        generateViewPath: PropTypes.func.isRequired,
         renderGcodeFile: PropTypes.func.isRequired,
         manualPreview: PropTypes.func.isRequired,
         setAutoPreview: PropTypes.func.isRequired,
@@ -87,6 +88,9 @@ class Output extends PureComponent {
             } else {
                 this.props.manualPreview();
             }
+        },
+        onPreview: () => {
+            this.props.generateViewPath();
         }
     };
 
@@ -123,7 +127,7 @@ class Output extends PureComponent {
                         onClick={this.actions.onProcess}
                         style={{ display: 'block', width: '100%' }}
                     >
-                        {isProcess ? i18n._('Preview') : i18n._('Process')}
+                        {isProcess ? i18n._('ToolPath') : i18n._('Process')}
                     </button>
                     {isProcess && (
                         <div>
@@ -142,6 +146,15 @@ class Output extends PureComponent {
                                     />
                                 </div>
                             </TipTrigger>
+                            <button
+                                type="button"
+                                className="sm-btn-large sm-btn-default"
+                                disabled={!hasModel || !isAllModelsPreviewed || isGcodeGenerating}
+                                onClick={this.actions.onPreview}
+                                style={{ display: 'block', width: '100%' }}
+                            >
+                                {isProcess ? i18n._('Preview') : i18n._('Process')}
+                            </button>
                             <button
                                 type="button"
                                 className="sm-btn-large sm-btn-default"
@@ -207,6 +220,7 @@ const mapDispatchToProps = (dispatch, ownProps) => {
     return {
         togglePage: (page) => dispatch(editorActions.togglePage('cnc', page)),
         generateGcode: (thumbnail) => dispatch(editorActions.generateGcode('cnc', thumbnail)),
+        generateViewPath: () => dispatch(editorActions.generateViewPath('cnc')),
         renderGcodeFile: (file) => dispatch(workspaceActions.renderGcodeFile(file)),
         manualPreview: () => dispatch(editorActions.manualPreview('cnc', true)),
         setAutoPreview: (value) => dispatch(editorActions.setAutoPreview('cnc', value)),

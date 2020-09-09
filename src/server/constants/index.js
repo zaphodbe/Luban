@@ -55,3 +55,7 @@ export const SOURCE_TYPE_IMAGE3D = 'image3d';
 export const PROCESS_MODE_BW = 'bw';
 export const PROCESS_MODE_VECTOR = 'vector';
 export const PROCESS_MODE_GREYSCALE = 'greyscale';
+
+// job type
+export const JOB_TYPE_3AXIS = '3axis';
+export const JOB_TYPE_4AXIS = '4axis';

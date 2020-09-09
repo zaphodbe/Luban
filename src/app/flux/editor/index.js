@@ -6,7 +6,7 @@ import { threejsModelActions } from './threejs-model';
 import { svgModelActions } from './svg-model';
 import { baseActions, checkIsAllModelsPreviewed, computeTransformationSizeForTextVector } from './base';
 import { SVG_EVENT_ADD, SVG_EVENT_MOVE, SVG_EVENT_SELECT } from '../../constants/svg';
-import { JOB_TYPE_4AXIS, PAGE_EDITOR, PAGE_PROCESS } from '../../constants';
+import { JOB_TYPE_4AXIS, PAGE_EDITOR, PAGE_PROCESS, PROCESS_MODE_VECTOR } from '../../constants';
 import { controller } from '../../lib/controller';
 
 const getCount = (() => {
@@ -44,7 +44,10 @@ export const CNC_LASER_STAGE = {
     RE_PREVIEW: 7,
     GENERATING_GCODE: 8,
     GENERATE_GCODE_SUCCESS: 9,
-    GENERATE_GCODE_FAILED: 10
+    GENERATE_GCODE_FAILED: 10,
+    GENERATING_VIEWPATH: 11,
+    GENERATE_VIEWPATH_SUCCESS: 12,
+    GENERATE_VIEWPATH_FAILED: 13
 };
 
 export const actions = {
@@ -104,9 +107,11 @@ export const actions = {
         });
     },
 
-    uploadImage: (headType, file, mode, onError) => (dispatch) => {
+    uploadImage: (headType, file, mode, onError) => (dispatch, getState) => {
+        const { jobType } = getState()[headType];
         const formData = new FormData();
         formData.append('image', file);
+        formData.append('jobType', jobType);
 
         api.uploadImage(formData)
             .then((res) => {
@@ -140,7 +145,7 @@ export const actions = {
     generateModel: (headType, originalName, uploadName, sourceWidth, sourceHeight,
         mode, sourceType, config, gcodeConfig, transformation) => (dispatch, getState) => {
         const { size } = getState().machine;
-        const { toolParams } = getState()[headType];
+        const { jobType, toolParams } = getState()[headType];
 
         sourceType = sourceType || getSourceType(originalName);
 
@@ -210,7 +215,8 @@ export const actions = {
             height,
             transformation,
             config,
-            gcodeConfig
+            gcodeConfig,
+            isRotate: jobType === JOB_TYPE_4AXIS
         };
 
 
@@ -363,7 +369,7 @@ export const actions = {
     },
 
     updateSelectedModelConfig: (headType, config) => (dispatch, getState) => {
-        const { modelGroup, svgModelGroup, toolPathModelGroup } = getState()[headType];
+        const { jobType, modelGroup, svgModelGroup, toolPathModelGroup } = getState()[headType];
 
         const selectedModel = modelGroup.getSelectedModel();
         const options = {
@@ -380,8 +386,11 @@ export const actions = {
             config: {
                 ...selectedModel.config,
                 ...config
-            }
+            },
+            isRotate: jobType === JOB_TYPE_4AXIS
         };
+
+        console.log('config', config, options);
 
         api.processImage(options)
             .then((res) => {
@@ -664,6 +673,7 @@ export const actions = {
             } else {
                 model.updateVisible(true);
                 toolPathModel.updateVisible(false);
+                toolPathModelGroup.hideViewPaths();
             }
         }
     },
@@ -807,6 +817,25 @@ export const actions = {
         }));
     },
 
+
+    onReceiveViewPathTaskResult: (headType, taskResult) => async (dispatch, getState) => {
+        const { toolPathModelGroup } = getState()[headType];
+        const { size } = getState().machine;
+
+        if (taskResult.taskStatus === 'failed') {
+            dispatch(baseActions.updateState(headType, {
+                stage: CNC_LASER_STAGE.GENERATE_GCODE_FAILED,
+                progress: 1
+            }));
+            return;
+        }
+        const { viewPathFile } = taskResult;
+        toolPathModelGroup.receiveViewPathTaskResult(viewPathFile, size).then(() => {
+            dispatch(baseActions.render(headType));
+        });
+    },
+
+
     getEstimatedTime: (headType, type) => (dispatch, getState) => {
         const { modelGroup } = getState()[headType];
         if (type === 'selected') {
@@ -837,6 +866,7 @@ export const actions = {
                 if (toolPath.needPreview) {
                     toolPath.updateVisible(false);
                     model.updateVisible(true);
+                    toolPathModelGroup.hideViewPaths();
                 } else {
                     toolPath.updateVisible(true);
                     model.updateVisible(false);
@@ -845,6 +875,47 @@ export const actions = {
             dispatch(actions.manualPreview(headType));
         }
         dispatch(baseActions.render(headType));
+    },
+
+    /**
+     * Generate View Path.
+     *
+     * @param headType
+     * @param thumbnail G-code thumbnail should be included in G-code header.
+     * @returns {Function}
+     */
+    generateViewPath: (headType) => (dispatch, getState) => {
+        const modelInfos = [];
+        const { modelGroup, toolPathModelGroup, jobType, jobSize } = getState()[headType];
+
+        const { diameter = 0 } = jobSize || {};
+
+        for (const model of modelGroup.getModels()) {
+            if (model.hideFlag || model.mode === PROCESS_MODE_VECTOR) continue;
+            const modelTaskInfo = model.getTaskInfo();
+            const toolPathModelTaskInfo = toolPathModelGroup.getToolPathModelTaskInfo(modelTaskInfo.modelID);
+            if (toolPathModelTaskInfo) {
+                const taskInfo = {
+                    ...modelTaskInfo,
+                    ...toolPathModelTaskInfo,
+                    isRotate: jobType === JOB_TYPE_4AXIS,
+                    diameter: diameter
+                };
+                modelInfos.push(taskInfo);
+            }
+        }
+        if (modelInfos.length === 0) {
+            return;
+        }
+        controller.commitViewPathTask({
+            taskId: uuid.v4(),
+            headType: headType,
+            data: modelInfos
+        });
+        dispatch(baseActions.updateState(headType, {
+            stage: CNC_LASER_STAGE.GENERATING_GCODE,
+            progress: 0
+        }));
     },
 
     /**

@@ -1,4 +1,4 @@
-import TaskManager, { Task, TASK_TYPE_GENERATE_GCODE, TASK_TYPE_GENERATE_TOOLPATH } from './TaskManager';
+import TaskManager, { Task, TASK_TYPE_GENERATE_GCODE, TASK_TYPE_GENERATE_TOOLPATH, TASK_TYPE_GENERATE_VIEWPATH } from './TaskManager';
 
 const instance = new TaskManager();
 
@@ -27,10 +27,15 @@ const addGenerateGcodeTask = (socket, task) => {
     instance.addTask(new Task(task.taskId, socket, task.data, TASK_TYPE_GENERATE_GCODE, task.headType));
 };
 
+const addGenerateViewPathTask = (socket, task) => {
+    instance.addTask(new Task(task.taskId, socket, task.data, TASK_TYPE_GENERATE_VIEWPATH, task.headType));
+};
+
 export default {
     instance,
     start,
     stop,
     addGenerateToolPathTask,
-    addGenerateGcodeTask
+    addGenerateGcodeTask,
+    addGenerateViewPathTask
 };

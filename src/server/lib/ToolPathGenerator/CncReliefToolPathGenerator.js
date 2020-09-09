@@ -13,13 +13,11 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
         // const { config, transformation, gcodeConfigPlaceholder } = modelInfo;
         const { config, transformation, gcodeConfig, isRotate, diameter } = modelInfo;
         const { jogSpeed, workSpeed, plungeSpeed, toolDiameter, toolAngle, targetDepth,
-            stepDown, safetyHeight, stopHeight, density } = gcodeConfig;
-
-        const radius = diameter / 2;
+            stepDown, safetyHeight, stopHeight, density, isModel = false } = gcodeConfig;
 
         const { invert } = config;
 
-        const initialZ = isRotate ? radius : 0;
+        const initialZ = isRotate ? diameter / 2 : 0;
 
         this.modelInfo = modelInfo;
         this.jogSpeed = jogSpeed;
@@ -31,11 +29,21 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
         this.stepDown = stepDown;
         this.safetyHeight = initialZ + safetyHeight;
         this.stopHeight = initialZ + stopHeight;
+        this.finalDepth = this.initialZ - this.targetDepth;
 
-        this.toolPath = new ToolPath({ isRotate, radius });
+        this.isRotate = isRotate;
+        this.diameter = diameter;
+        this.toolPath = new ToolPath({ isRotate, radius: isModel ? transformation.width / Math.PI / 2 : this.diameter / 2 });
 
         const maxDensity = this.calMaxDensity(toolDiameter, transformation);
         this.density = Math.min(density, maxDensity);
+
+        this.isModel = isModel;
+
+        this.transformation = transformation;
+
+        this.imageDiameter = this.isModel ? transformation.width / Math.PI : 0;
+
 
         this.targetWidth = Math.round(transformation.width * this.density);
         this.targetHeight = Math.round(transformation.height * this.density);
@@ -47,7 +55,7 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
         this.toolSlope = Math.tan(toolAngle / 2 * Math.PI / 180);
     }
 
-    generateToolPathObj() {
+    _processImage() {
         let data = null;
         return Jimp
             .read(this.modelPath)
@@ -83,9 +91,7 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
                 while (!smooth) {
                     smooth = !this.upSmooth(data);
                 }
-                // const fakeGcode = this.genGCode(data);
-                // return new GcodeParser().parseGcodeToToolPathObj(fakeGcode, this.modelInfo);
-                return this.parseImageToToolPathObj(data);
+                return data;
             });
     }
 
@@ -134,16 +140,19 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
         return updated;
     };
 
+    _calculateThePrintZ(pixel) {
+        if (this.isRotate && this.isModel) {
+            const imageRadius = this.imageDiameter / 2;
+            const d = this.diameter / 2 - imageRadius;
+            return this.initialZ - d + Math.round(-pixel * imageRadius / 255 * 100) / 100;
+        } else {
+            return this.initialZ + Math.round(-pixel * this.targetDepth / 255 * 100) / 100;
+        }
+    }
 
-    parseImageToToolPathObj = (data) => {
-        let cutDown = true;
-        let curDepth = this.initialZ - this.stepDown;
-        // let gcode = '';
-        let currentZ = this.initialZ;
-        let progress = 0;
-        let cutDownTimes = 0;
-        const { headType, mode, transformation, gcodeConfig, isRotate } = this.modelInfo;
-        const { positionX, positionY, positionZ } = transformation;
+    parseRotateImageToViewPathObj = (data) => {
+        const stepOver = 1 / this.density;
+
         const normalizer = new Normalizer(
             'Center',
             0,
@@ -151,7 +160,155 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
             0,
             this.targetHeight,
             { x: 1 / this.density, y: 1 / this.density },
-            { x: isRotate ? transformation.positionX : 0, y: 0 }
+            { x: this.isRotate ? this.transformation.positionX : 0, y: 0 }
+        );
+
+        const paths = [];
+        const circumference = (this.isModel ? this.imageDiameter : this.diameter) * Math.PI;
+        const length = Math.floor(circumference * this.density);
+
+        for (let j = 0; j < this.targetHeight; j++) {
+            const path = [];
+            for (let i = 0; i < this.targetWidth; i++) {
+                const viewX = normalizer.x(i);
+                // const z = this.initialZ + Math.round(-data[i][j] * this.targetDepth / 255 * 100) / 100;
+                const z = this._calculateThePrintZ(data[i][j]);
+                const index = (Math.round(viewX / circumference * length) % length + length) % length;
+                path[index] = path[index] ? Math.min(path[index], z) : z;
+            }
+            paths.push(path);
+        }
+
+        for (const path of paths) {
+            for (let i = 0; i < length; i++) {
+                const b = i / length * 360 / 180 * Math.PI;
+                const z = path[i] ? path[i] : this.diameter / 2;
+                const x = z * Math.sin(b);
+                const y = z * Math.cos(b);
+                path[i] = { x: x, y: y };
+            }
+            path.push(path[0]);
+        }
+
+        const boundingBox = {
+            max: {
+                x: this.transformation.positionX + this.targetWidth / this.density / 2,
+                y: this.transformation.positionY + this.targetHeight / this.density / 2,
+                z: -this.targetDepth
+            },
+            min: {
+                x: this.transformation.positionX - this.targetWidth / this.density / 2,
+                y: this.transformation.positionY - this.targetHeight / this.density / 2,
+                z: 0
+            },
+            length: {
+                x: this.targetWidth / this.density,
+                y: this.targetHeight / this.density,
+                z: this.targetDepth
+            }
+        };
+
+        return {
+            stepOver: stepOver,
+            direction: 'Y',
+            depth: stepOver,
+            initZ: -boundingBox.length.y / 2,
+            stopOver: stepOver,
+            data: paths,
+            positionX: 0,
+            positionY: this.transformation.positionY,
+            rotationX: Math.PI / 2,
+            boundingBox: boundingBox,
+            isRotate: this.isRotate
+        };
+    };
+
+    parseImageToViewPathObj = (data) => {
+        const { positionX, positionY } = this.transformation;
+
+        const stepOver = 1 / this.density;
+
+        const normalizer = new Normalizer(
+            'Center',
+            0,
+            this.targetWidth,
+            0,
+            this.targetHeight,
+            { x: 1 / this.density, y: 1 / this.density },
+            { x: this.isRotate ? positionX : 0, y: 0 }
+        );
+
+        const paths = [];
+
+        for (let j = 0; j < this.targetHeight; j++) {
+            const path = [];
+            for (let i = 0; i < this.targetWidth; i++) {
+                const viewX = normalizer.x(i);
+                const z = this.initialZ + Math.round(-data[i][j] * this.targetDepth / 255 * 100) / 100;
+                if (i === 0) {
+                    path.push({ x: viewX, y: -this.targetDepth });
+                }
+                if (path.length >= 2 && z === path[path.length - 1].y && z === path[path.length - 2].y) {
+                    path[path.length - 1].x = viewX;
+                } else {
+                    path.push({ x: viewX, y: z });
+                }
+                if (i === this.targetWidth - 1) {
+                    path.push({ x: viewX, y: -this.targetDepth });
+                }
+            }
+            path.push(path[0]);
+            paths.push(path);
+        }
+
+        const boundingBox = {
+            max: {
+                x: positionX + this.targetWidth / this.density / 2,
+                y: positionY + this.targetHeight / this.density / 2,
+                z: -this.targetDepth
+            },
+            min: {
+                x: positionX - this.targetWidth / this.density / 2,
+                y: positionY - this.targetHeight / this.density / 2,
+                z: 0
+            },
+            length: {
+                x: this.targetWidth / this.density,
+                y: this.targetHeight / this.density,
+                z: this.targetDepth
+            }
+        };
+
+        return {
+            stepOver: stepOver,
+            direction: 'Y',
+            depth: stepOver,
+            initZ: -boundingBox.length.y / 2,
+            stopOver: stepOver,
+            data: paths,
+            positionX: positionX,
+            positionY: positionY,
+            rotationX: Math.PI / 2,
+            boundingBox: boundingBox,
+            isRotate: this.isRotate
+        };
+    };
+
+    parseImageToToolPathObj = (data) => {
+        let cutDown = true;
+        let curDepth = this.initialZ - this.stepDown;
+        let currentZ = this.initialZ;
+        let progress = 0;
+        let cutDownTimes = 0;
+        const { positionX, positionY, positionZ } = this.transformation;
+        const normalizer = new Normalizer(
+            'Center',
+            0,
+            this.targetWidth,
+            0,
+            this.targetHeight,
+            { x: 1 / this.density, y: 1 / this.density },
+            { x: this.isRotate ? positionX : 0, y: 0 }
         );
 
         const normalizedX0 = normalizer.x(0);
@@ -178,7 +335,7 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
         for (let i = 0; i < data.length; i++) {
             zMin[i] = 0;
             for (let j = 0; j < data[i].length; j++) {
-                const z = this.initialZ + Math.round(-data[i][j] * this.targetDepth / 255 * 100) / 100;
+                const z = this._calculateThePrintZ(data[i][j]);
                 data[i][j] = z;
                 zMin[i] = Math.min(zMin[i], z);
             }
@@ -251,6 +408,10 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
             currentZ = this.safetyHeight;
             curDepth = Math.round((curDepth - this.stepDown) * 100) / 100;
 
+            if (curDepth < this.finalDepth) {
+                break;
+            }
+
             cutDownTimes += 1;
         }
         this.toolPath.move0Z(this.stopHeight, this.jogSpeed);
@@ -263,6 +424,8 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
         boundingBox.max.y += positionY;
         boundingBox.min.y += positionY;
 
+        const { headType, mode, gcodeConfig } = this.modelInfo;
+
         return {
             headType: headType,
             mode: mode,
@@ -273,7 +436,20 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
             positionY: positionY,
             positionZ: positionZ,
             boundingBox: boundingBox,
-            isRotate: isRotate
+            isRotate: this.isRotate
         };
     };
+
+    generateViewPathObj() {
+        return this._processImage().then((data) => {
+            return this.isRotate ? this.parseRotateImageToViewPathObj(data)
+                : this.parseImageToViewPathObj(data);
+        });
+    }
+
+    generateToolPathObj() {
+        return this._processImage().then((data) => {
+            return this.parseImageToToolPathObj(data);
+        });
+    }
 }

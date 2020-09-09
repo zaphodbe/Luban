@@ -10,11 +10,12 @@ import { editorProcess } from '../../lib/editor/process';
 import { pathWithRandomSuffix } from '../../lib/random-utils';
 import stockRemap from '../../lib/stock-remap';
 import trace from '../../lib/image-trace';
-import { ERR_INTERNAL_SERVER_ERROR } from '../../constants';
+import { ERR_INTERNAL_SERVER_ERROR, JOB_TYPE_4AXIS } from '../../constants';
 import DataStorage from '../../DataStorage';
 import { stitch, stitchEach } from '../../lib/image-stitch';
 import { calibrationPhoto, getCameraCalibration, getPhoto, setMatrix, takePhoto } from '../../lib/image-getPhoto';
 import { Mesh } from '../../lib/MeshProcess/Mesh';
+import { Stopwatch } from '../../../../test/utils/Stopwatch';
 
 
 const log = logger('api:image');
@@ -25,6 +26,8 @@ export const set = (req, res) => {
 
     const uploadName = pathWithRandomSuffix(originalName);
     const uploadPath = `${DataStorage.tmpDir}/${uploadName}`;
+
+    const { jobType } = req.body;
 
     async.series([
         (next) => {
@@ -58,13 +61,14 @@ export const set = (req, res) => {
 
                 next();
             } else if (path.extname(uploadName) === '.stl') {
-                console.log('uploadPath', uploadPath);
                 const mesh = Mesh.loadSTLFile(uploadPath);
+                const width = mesh.aabb.length.x;
+                const height = mesh.aabb.length.y;
                 res.send({
                     originalName: originalName,
                     uploadName: uploadName,
-                    width: mesh.aabb.length.x,
-                    height: mesh.aabb.length.y
+                    width: jobType === JOB_TYPE_4AXIS ? Math.sqrt(width * width + height * height) : width,
+                    height
                 });
             } else {
                 jimp.read(uploadPath).then((image) => {
@@ -148,8 +152,10 @@ export const laserCaseImage = (req, res) => {
 export const process = (req, res) => {
     const options = req.body;
 
+    const sw = new Stopwatch();
     editorProcess(options)
         .then((result) => {
+            sw.time();
             res.send(result);
         })
         .catch((err) => {

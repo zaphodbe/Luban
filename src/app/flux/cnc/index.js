@@ -78,16 +78,6 @@ export const actions = {
         dispatch(editorActions.init('cnc'));
 
         const controllerEvents = {
-            'taskCompleted:generateToolPath': (taskResult) => {
-                if (taskResult.headType === 'cnc') {
-                    dispatch(editorActions.onReceiveTaskResult('cnc', taskResult));
-                }
-            },
-            'taskCompleted:generateGcode': (taskResult) => {
-                if (taskResult.headType === 'cnc') {
-                    dispatch(editorActions.onReceiveGcodeTaskResult('cnc', taskResult));
-                }
-            },
             'taskProgress:generateToolPath': (taskResult) => {
                 if (taskResult.headType === 'cnc') {
                     dispatch(editorActions.updateState('cnc', {
@@ -95,11 +85,37 @@ export const actions = {
                     }));
                 }
             },
+            'taskCompleted:generateToolPath': (taskResult) => {
+                if (taskResult.headType === 'cnc') {
+                    dispatch(editorActions.onReceiveTaskResult('cnc', taskResult));
+                }
+            },
+
             'taskProgress:generateGcode': (taskResult) => {
                 if (taskResult.headType === 'cnc') {
                     dispatch(editorActions.updateState('cnc', {
                         progress: taskResult.progress
                     }));
+                }
+            },
+            'taskCompleted:generateGcode': (taskResult) => {
+                if (taskResult.headType === 'cnc') {
+                    dispatch(editorActions.onReceiveGcodeTaskResult('cnc', taskResult));
+                }
+            },
+
+            'taskProgress:generateViewPath': (taskResult) => {
+                if (taskResult.headType === 'cnc') {
+                    dispatch(editorActions.updateState('cnc', {
+                        progress: taskResult.progress
+                    }));
+                }
+            },
+            'taskCompleted:generateViewPath': (taskResult) => {
+                if (taskResult.headType === 'cnc') {
+                    if (taskResult.headType === 'cnc') {
+                        dispatch(editorActions.onReceiveViewPathTaskResult('cnc', taskResult));
+                    }
                 }
             }
         };
@@ -107,6 +123,18 @@ export const actions = {
         Object.keys(controllerEvents).forEach(event => {
             controller.on(event, controllerEvents[event]);
         });
+    },
+
+    changeJobSize: (jobSize) => (dispatch) => {
+        dispatch(editorActions.updateState('cnc', {
+            jobSize: jobSize
+        }));
+    },
+
+    changeJobType: (jobType) => (dispatch) => {
+        dispatch(editorActions.updateState('cnc', {
+            jobType: jobType
+        }));
     },
 
     changeToolParams: (toolParams) => {

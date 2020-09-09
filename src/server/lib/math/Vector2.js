@@ -62,4 +62,9 @@ export class Vector2 {
         const c2 = Vector2.cross(Vector2.sub(v2, v1), Vector2.sub(p2, v1));
         return (c1 >= 0 && c2 >= 0) || (c1 <= 0 && c2 <= 0);
     }
+
+    static angle(v) {
+        const angle = Math.atan2(v.y, v.x) * 180 / Math.PI;
+        return angle > 0 ? angle : angle + 360;
+    }
 }

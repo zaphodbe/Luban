@@ -360,7 +360,7 @@ export default class CNCToolPathGenerator extends EventEmitter {
     }
 
     generateViewPathObj(svg, modelInfo) {
-        const { transformation, gcodeConfig } = modelInfo;
+        const { sourceType, mode, transformation, gcodeConfig } = modelInfo;
 
         const {
             toolAngle, toolShaftDiameter,
@@ -379,7 +379,7 @@ export default class CNCToolPathGenerator extends EventEmitter {
         const off = Math.min(radiusNeeded, toolShaftDiameter * 0.5);
 
         let progress = 0;
-        let viewPath = [[[]]];
+        let polygons = null;
         // scan shapes
         for (let i = 0; i < svg.shapes.length; i++) {
             const shape = svg.shapes[i];
@@ -394,7 +394,7 @@ export default class CNCToolPathGenerator extends EventEmitter {
                 }
 
                 const result = new PolygonOffset(path.points).ext(off);
-                viewPath = martinez.union([viewPath], result)[0];
+                polygons = polygons === null ? [result] : martinez.union(polygons, result);
             }
             const p = (i + 1) / svg.shapes.length;
             if (p - progress > 0.05) {
@@ -403,8 +403,21 @@ export default class CNCToolPathGenerator extends EventEmitter {
             }
         }
 
+        const viewPaths = [];
+        for (const polygon of polygons) {
+            const viewPath = [];
+            for (const path of polygon) {
+                for (const point of path) {
+                    viewPath.push({ x: point[0], y: point[1] });
+                }
+            }
+            viewPaths.push(viewPath);
+        }
+
         return {
             plane: 'XY',
+            sourceType: sourceType,
+            mode: mode,
             positionX: positionX,
             positionY: positionY,
             positionZ: positionZ,
@@ -412,16 +425,21 @@ export default class CNCToolPathGenerator extends EventEmitter {
             boundingBox: {
                 min: {
                     x: positionX - width / 2,
-                    y: positionY - width / 2,
+                    y: positionY - height / 2,
                     z: -targetDepth
                 },
                 max: {
                     x: positionX + width / 2,
                     y: positionY + height / 2,
                     z: 0
+                },
+                length: {
+                    x: width,
+                    y: height,
+                    z: targetDepth
                 }
             },
-            data: viewPath
+            data: viewPaths
         };
     }
 }

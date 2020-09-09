@@ -178,7 +178,6 @@ const generateCNCDefaults = (mode, sourceType) => {
             switch (sourceType) {
                 case SOURCE_TYPE_IMAGE3D:
                     config = {
-                        invert: false,
                         plane: 'XY',
                         minGray: 0,
                         maxGray: 255,
@@ -231,23 +230,44 @@ const generateCNCDefaults = (mode, sourceType) => {
     }
 
     if (mode === 'greyscale') {
-        gcodeConfig = {
-            // Default movement mode is greyscale-line
-            // greyscale-line: workSpeed: 500, dwellTime: null
-            // greyscale-dot: workSpeed: null, dwellTime: 42
-            toolDiameter: 0.1, // tool diameter (in mm)
-            toolAngle: 30, // tool angle (in degree, defaults to 30° for V-Bit)
-            toolShaftDiameter: 3.175,
-            targetDepth: 2.0,
-            stepDown: 0.5,
-            safetyHeight: 1.0,
-            stopHeight: 10,
-            density: 5,
-            jogSpeed: 3000,
-            workSpeed: 600,
-            plungeSpeed: 600,
-            dwellTime: ABSENT_VALUE
-        };
+        if (sourceType === SOURCE_TYPE_IMAGE3D) {
+            gcodeConfig = {
+                // Default movement mode is greyscale-line
+                // greyscale-line: workSpeed: 500, dwellTime: null
+                // greyscale-dot: workSpeed: null, dwellTime: 42
+                toolDiameter: 0.1, // tool diameter (in mm)
+                toolAngle: 30, // tool angle (in degree, defaults to 30° for V-Bit)
+                toolShaftDiameter: 3.175,
+                targetDepth: 2.0,
+                stepDown: 0.5,
+                safetyHeight: 1.0,
+                stopHeight: 10,
+                density: 5,
+                jogSpeed: 3000,
+                workSpeed: 600,
+                plungeSpeed: 600,
+                dwellTime: ABSENT_VALUE,
+                isModel: true
+            };
+        } else {
+            gcodeConfig = {
+                // Default movement mode is greyscale-line
+                // greyscale-line: workSpeed: 500, dwellTime: null
+                // greyscale-dot: workSpeed: null, dwellTime: 42
+                toolDiameter: 0.1, // tool diameter (in mm)
+                toolAngle: 30, // tool angle (in degree, defaults to 30° for V-Bit)
+                toolShaftDiameter: 3.175,
+                targetDepth: 2.0,
+                stepDown: 0.5,
+                safetyHeight: 1.0,
+                stopHeight: 10,
+                density: 5,
+                jogSpeed: 3000,
+                workSpeed: 600,
+                plungeSpeed: 600,
+                dwellTime: ABSENT_VALUE
+            };
+        }
     } else {
         gcodeConfig = {
             toolDiameter: 0.1, // tool diameter (in mm)

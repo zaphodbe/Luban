@@ -108,6 +108,9 @@ const generateCncToolPath = async (modelInfo, onProgress) => {
         // image3d need use processImageName
         modelPath = `${DataStorage.tmpDir}/${processImageName}`;
 
+        // TODO Parameters used twice resulted in no invert
+        modelInfo.config.invert = false;
+
         const generator = new CncReliefToolPathGenerator(modelInfo, modelPath);
         generator.on('progress', (p) => onProgress(p));
 

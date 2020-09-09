@@ -6,6 +6,7 @@ import { pathWithRandomSuffix } from '../../../shared/lib/random-utils';
 import DataStorage from '../../DataStorage';
 import { isZero } from '../../../shared/lib/utils';
 import { Line, TYPE_SEGMENT } from '../math/Line';
+import { Slicer } from './Slicer';
 
 /**
  * Calculate whether a point is inside the triangle
@@ -30,14 +31,58 @@ function getPlane(v0, v1, v2) {
     };
 }
 
+function getAngleRange(angle1, angle2, angle = 1) {
+    const order = Math.abs(angle1 - angle2) < 180;
+    let start, end;
+    if (angle1 < angle2) {
+        start = order ? angle1 : angle2;
+        end = order ? angle2 : angle1 + 360;
+    } else {
+        start = order ? angle2 : angle1;
+        end = order ? angle1 : angle2 + 360;
+    }
+    start = Math.ceil(start / angle);
+    end = Math.floor(end / angle);
+
+    return {
+        start,
+        end
+    };
+}
+
+const getPointByLineAndAngle = (start, end, angle) => {
+    const k2 = Math.tan(angle / 180 * Math.PI);
+    if (start.x === end.x) {
+        return {
+            x: start.x,
+            y: k2 * start.x
+        };
+    }
+    if (start.y === end.y) {
+        return {
+            x: start.y / k2,
+            y: start.y
+        };
+    }
+    const k1 = (end.y - start.y) / (end.x - start.x);
+    const b1 = end.y - k1 * end.x;
+    if (k1 === k2) {
+        return null;
+    }
+    return {
+        x: b1 / (k2 - k1),
+        y: (b1 / (k2 - k1)) * k2
+    };
+};
+
 export class MeshProcess {
     constructor(modelInfo) {
-        const { uploadName, gcodeConfig, isRotate, diameter } = modelInfo;
-        const { plane = PLANE_XY, invert = false, minGray = 0, maxGray = 255, sliceDensity = 10, extensionX = 0, extensionY = 0 } = gcodeConfig;
+        const { uploadName, config = {}, isRotate, diameter } = modelInfo;
+        const { plane = PLANE_XY, minGray = 0, maxGray = 255,
+            sliceDensity = 5, extensionX = 0, extensionY = 0 } = config;
 
         this.uploadName = uploadName;
         this.plane = plane;
-        this.invert = invert;
         this.minGray = minGray;
         this.maxGray = maxGray;
         this.extensionX = extensionX;
@@ -46,6 +91,8 @@ export class MeshProcess {
 
         this.isRotate = isRotate;
         this.diameter = diameter;
+
+        this.outputFilename = pathWithRandomSuffix(this.uploadName).replace('.stl', '.jpg');
 
         this.mesh = Mesh.loadSTLFile(`${DataStorage.tmpDir}/${uploadName}`, this.plane);
         if (!this.mesh) {
@@ -125,9 +172,6 @@ export class MeshProcess {
         const maxZ = mesh.aabb.length.z;
         const grayRange = this.maxGray - this.minGray;
 
-        let outputFilename = pathWithRandomSuffix(this.uploadName);
-        outputFilename = outputFilename.replace('.stl', '.jpg');
-
         return new Promise(resolve => {
             // eslint-disable-next-line no-new
             new Jimp(width, height, (err, image) => {
@@ -136,7 +180,8 @@ export class MeshProcess {
                         const ii = i - this.extensionX;
                         const jj = j - this.extensionY;
                         const idx = jj * width * 4 + ii * 4;
-                        const d = data[ii] && data[ii][jj] ? data[ii][jj] / maxZ * grayRange + this.minGray : 0;
+                        let d = data[ii] && data[ii][jj] ? data[ii][jj] / maxZ * grayRange + this.minGray : 0;
+                        d = 255 - d;
 
                         image.bitmap.data[idx] = d;
                         image.bitmap.data[idx + 1] = d;
@@ -145,9 +190,9 @@ export class MeshProcess {
                     }
                 }
 
-                image.write(`${DataStorage.tmpDir}/${outputFilename}`, () => {
+                image.write(`${DataStorage.tmpDir}/${this.outputFilename}`, () => {
                     resolve({
-                        filename: outputFilename
+                        filename: this.outputFilename
                     });
                 });
             });
@@ -155,7 +200,87 @@ export class MeshProcess {
     }
 
     convertTo4AxisImage() {
+        const mesh = this.mesh;
 
+        mesh.offset({
+            x: -(mesh.aabb.max.x + mesh.aabb.min.x) / 2,
+            y: -(mesh.aabb.max.y + mesh.aabb.min.y) / 2,
+            z: -mesh.aabb.min.z
+        });
+
+        const height = Math.ceil(mesh.aabb.length.z * this.sliceDensity);
+        const initialLayerThickness = 1 / this.sliceDensity;
+        const layerThickness = 1 / this.sliceDensity;
+
+        const slicer = new Slicer(this.mesh, layerThickness, height, initialLayerThickness);
+
+        const data = [];
+        const r = Vector2.length({ x: mesh.aabb.length.x / 2, y: mesh.aabb.length.y / 2 });
+        const width = Math.ceil(r * 2 * Math.PI * this.sliceDensity);
+        // const width = 360;
+        const sliceAngle = 360 / width;
+
+        let maxR = 0;
+
+        for (let i = 0; i < slicer.slicerLayers.length; i++) {
+            data[i] = [];
+            const slicerLayer = slicer.slicerLayers[i];
+            for (const ppath of slicerLayer.polygons.paths) {
+                for (let j = 0; j < ppath.length; j++) {
+                    const start = ppath[j % ppath.length];
+                    const end = ppath[(j + 1) % ppath.length];
+
+                    maxR = Math.max(Vector2.length2(start), Vector2.length2(end), maxR);
+
+                    const a1 = Vector2.angle(start);
+                    const a2 = Vector2.angle(end);
+                    if (!a1 || !a2 || Math.abs(a1 - a2) === 180) {
+                        continue;
+                    }
+                    const range = getAngleRange(a1, a2, sliceAngle);
+                    for (let a = range.start; a <= range.end; a++) {
+                        const aa = (a * sliceAngle) % 360;
+                        const hj = Math.round(aa / sliceAngle);
+
+                        const p = getPointByLineAndAngle(start, end, aa);
+                        if (!data[i][hj]) {
+                            data[i][hj] = [];
+                        }
+
+                        if (!data[i][hj][0]) {
+                            data[i][hj][0] = (Vector2.length(p));
+                        }
+
+                        data[i][hj][0] = Math.max(Vector2.length(p), data[i][hj][0]);
+                    }
+                }
+            }
+        }
+
+        maxR = Math.sqrt(maxR);
+
+        return new Promise(resolve => {
+            // eslint-disable-next-line no-new
+            new Jimp(width, height, (err, image) => {
+                for (let i = 0; i < width; i++) {
+                    for (let j = 0; j < height; j++) {
+                        const idx = j * width * 4 + i * 4;
+                        let d = data[j][i] ? data[j][i][0] / maxR * 255 : 0;
+                        d = 255 - d;
+
+                        image.bitmap.data[idx] = d;
+                        image.bitmap.data[idx + 1] = d;
+                        image.bitmap.data[idx + 2] = d;
+                        image.bitmap.data[idx + 3] = 255;
+                    }
+                }
+                image.write(`${DataStorage.tmpDir}/${this.outputFilename}`, () => {
+                    resolve({
+                        filename: this.outputFilename
+                    });
+                });
+            });
+        });
     }
 
     convertToImage() {

@@ -213,8 +213,7 @@ export class STLParse {
 
     parse(data, onProgress = noop) {
         const binData = this.ensureBinary(data);
-        const stringData = this.ensureString(data);
 
-        return this.isBinary(binData) ? this.parseBinary(binData, onProgress) : this.parseASCII(stringData, onProgress);
+        return this.isBinary(binData) ? this.parseBinary(binData, onProgress) : this.parseASCII(this.ensureString(data), onProgress);
     }
 }
