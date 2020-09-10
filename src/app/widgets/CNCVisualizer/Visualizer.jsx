@@ -220,10 +220,6 @@ class Visualizer extends Component {
         }
     }
 
-    // hideContextMenu = () => {
-    //     ContextMenu.hide();
-    // };
-
     getNotice() {
         const { stage, progress } = this.props;
         switch (stage) {
@@ -488,12 +484,10 @@ class Visualizer extends Component {
 }
 
 const mapStateToProps = (state) => {
-    const machine = state.machine;
-    // call canvas.updateTransformControl2D() when transformation changed or model selected changed
-    const { page, selectedModelID, modelGroup, svgModelGroup, toolPathModelGroup, hasModel, renderingTimestamp, stage, progress } = state.cnc;
+    const { jobSize, page, selectedModelID, modelGroup, svgModelGroup, toolPathModelGroup, hasModel, renderingTimestamp, stage, progress } = state.cnc;
     return {
         page,
-        size: machine.size,
+        size: jobSize,
         // model,
         modelGroup,
         svgModelGroup,

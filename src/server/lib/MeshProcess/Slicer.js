@@ -49,7 +49,8 @@ class SlicerLayer {
             }
         }
 
-        this.openPolygons.add(polygon);
+        // This is openPolygons
+        this.polygons.add(polygon);
     }
 
     getNextSegmentIdx(slicerSegment, startSegmentIdx) {

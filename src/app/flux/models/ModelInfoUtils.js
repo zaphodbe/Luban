@@ -181,7 +181,7 @@ const generateCNCDefaults = (mode, sourceType) => {
                         plane: 'XY',
                         minGray: 0,
                         maxGray: 255,
-                        sliceDensity: 10,
+                        sliceDensity: 5,
                         extensionX: 0,
                         extensionY: 0
                     };

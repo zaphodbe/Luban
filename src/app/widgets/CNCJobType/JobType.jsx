@@ -14,11 +14,13 @@ class JobType extends PureComponent {
 
         page: PropTypes.string.isRequired,
 
+        size: PropTypes.object.isRequired,
+
         jobType: PropTypes.string.isRequired,
         jobSize: PropTypes.object.isRequired,
 
         changeJobType: PropTypes.func.isRequired,
-        changeJobSize: PropTypes.func.isRequired
+        updateJobSize: PropTypes.func.isRequired
     };
 
     state = {
@@ -37,8 +39,9 @@ class JobType extends PureComponent {
     }
 
     render() {
-        const { jobType, jobSize } = this.props;
-        const { diameter } = jobSize;
+        const { size, jobType, jobSize } = this.props;
+        const { diameter, length } = jobSize;
+
         const isRotate = jobType === JOB_TYPE_4AXIS;
 
         return (
@@ -101,11 +104,26 @@ class JobType extends PureComponent {
                                 disabled={false}
                                 className="sm-parameter-row__input"
                                 value={diameter}
-                                onChange={(value) => { this.props.changeJobSize({ diameter: value }); }}
+                                max={size.x / Math.PI}
+                                min={0.1}
+                                onChange={(value) => { this.props.updateJobSize({ diameter: value }); }}
+                            />
+                            <span className="sm-parameter-row__input-unit">mm</span>
+                        </div>
+                        <div className="sm-parameter-row">
+                            <span className="sm-parameter-row__label">{i18n._('Length')}</span>
+                            <Input
+                                disabled={false}
+                                className="sm-parameter-row__input"
+                                value={length}
+                                max={size.y}
+                                min={0.1}
+                                onChange={(value) => { this.props.updateJobSize({ length: value }); }}
                             />
                             <span className="sm-parameter-row__input-unit">mm</span>
                         </div>
                     </div>
+
                 )}
             </React.Fragment>
         );
@@ -113,9 +131,11 @@ class JobType extends PureComponent {
 }
 
 const mapStateToProps = (state) => {
+    const { size } = state.machine;
     const { page, jobType, jobSize } = state.cnc;
 
     return {
+        size,
         page,
         jobType,
         jobSize
@@ -125,7 +145,7 @@ const mapStateToProps = (state) => {
 const mapDispatchToProps = (dispatch) => {
     return {
         changeJobType: (jobType) => dispatch(cncActions.changeJobType(jobType)),
-        changeJobSize: (jobSize) => dispatch(cncActions.changeJobSize(jobSize))
+        updateJobSize: (jobSize) => dispatch(cncActions.updateJobSize(jobSize))
     };
 };
 

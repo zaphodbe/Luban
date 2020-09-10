@@ -171,7 +171,6 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
             const path = [];
             for (let i = 0; i < this.targetWidth; i++) {
                 const viewX = normalizer.x(i);
-                // const z = this.initialZ + Math.round(-data[i][j] * this.targetDepth / 255 * 100) / 100;
                 const z = this._calculateThePrintZ(data[i][j]);
                 const index = (Math.round(viewX / circumference * length) % length + length) % length;
                 path[index] = path[index] ? Math.min(path[index], z) : z;

@@ -24,6 +24,7 @@ import History from './History';
 import FixedArray from './FixedArray';
 import { controller } from '../../lib/controller';
 import { actions as workspaceActions } from '../workspace';
+import { actions as cncActions } from '../cnc';
 import MachineSelectModal from '../../modals/modal-machine-select';
 
 
@@ -150,6 +151,8 @@ export const actions = {
             connectionType: connectionType,
             connectionTimeout: connectionTimeout
         }));
+
+        dispatch(cncActions.updateJobSize(seriesInfo ? seriesInfo.setting.size : size));
 
         // FIXME: this is a temporary solution, please solve the init dependency issue
         // setTimeout(() => dispatch(actions.updateMachineSize(machine.size)), 1000);
@@ -383,6 +386,8 @@ export const actions = {
         dispatch(actions.updateState({ size: { ...size } }));
 
         dispatch(printingActions.updateActiveDefinitionMachineSize(size));
+
+        dispatch(cncActions.updateJobSize(size));
     },
     updateLaserSize: (laserSize) => (dispatch) => {
         if (!laserSize) {
