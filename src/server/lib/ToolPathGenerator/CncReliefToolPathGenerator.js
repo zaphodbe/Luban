@@ -316,7 +316,7 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
 
         this.toolPath.safeStart(normalizedX0, normalizedHeight, this.stopHeight, this.safetyHeight);
 
-        this.toolPath.spindleOn();
+        this.toolPath.spindleOn({ P: 100 });
 
         const move0Z = (zState) => {
             if (zState) {

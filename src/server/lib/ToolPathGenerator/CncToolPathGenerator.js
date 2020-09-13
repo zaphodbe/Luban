@@ -222,7 +222,7 @@ export default class CNCToolPathGenerator extends EventEmitter {
 
         toolPath.safeStart(normalizer.x(point[0]), normalizer.y(point[1]), stopHeight, safetyHeight);
 
-        toolPath.spindleOn();
+        toolPath.spindleOn({ P: 100 });
 
         const passes = Math.ceil(targetDepth / stepDown);
         let z = initialZ;

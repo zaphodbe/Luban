@@ -58,6 +58,20 @@ class ToolPath {
         return null;
     }
 
+    setMove0F(f) {
+        const moveRate = this.setMoveRate(f);
+        if (moveRate) {
+            this.commands.push({ 'G': 0, F: moveRate });
+        }
+    }
+
+    setMove1F(f) {
+        const rapidMoveRate = this.setRapidMoveRate(f);
+        if (rapidMoveRate) {
+            this.commands.push({ 'G': 0, F: rapidMoveRate });
+        }
+    }
+
     move0XYZ(x, y, z, f) {
         const moveRate = this.setMoveRate(f);
         let commandObj;
@@ -158,14 +172,23 @@ class ToolPath {
         this.commands.push({ G: 0, Z: safetyHeight, F: 400 });
     }
 
+    setN() {
+        this.commands.push({ 'N': ' ' });
+    }
+
+    setComment(comment) {
+        this.commands.push({ 'C': comment });
+    }
+
     toB(x) {
         const d = this.state.Z || this.radius;
         const b = x * (d / this.radius) / (2 * d * Math.PI) * 360;
         return Math.round(b * 100) / 100;
     }
 
-    spindleOn() {
-        this.commands.push({ M: 3, P: 100 });
+    spindleOn(options = {}) {
+        options.M = 3;
+        this.commands.push({ ...options });
     }
 
     spindleOff() {
@@ -192,15 +215,19 @@ class ToolPath {
             } else {
                 this.commands.push(commandObj);
             }
+            this.setState(commandObj);
         } else {
             if (commandObj.G === 4) {
-                this.estimatedTime += commandObj.S;
+                if (commandObj.S) {
+                    this.estimatedTime += commandObj.S;
+                }
+                if (commandObj.P) {
+                    this.estimatedTime += commandObj.P / 1000;
+                }
             }
             this.commands.push(commandObj);
             this.setDirection(null);
         }
-
-        this.setState(commandObj);
     }
 
     setBoundingBox(commandObj) {

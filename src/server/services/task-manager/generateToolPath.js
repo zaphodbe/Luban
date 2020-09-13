@@ -42,7 +42,7 @@ const generateLaserToolPath = async (modelInfo, onProgress) => {
     }
 
     if (modelPath) {
-        const generator = new LaserToolPathGenerator();
+        const generator = new LaserToolPathGenerator(modelInfo);
         generator.on('progress', (p) => {
             onProgress(p);
         });

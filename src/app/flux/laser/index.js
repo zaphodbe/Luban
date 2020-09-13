@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 // import { DATA_PREFIX, EPSILON } from '../../constants';
-import { DATA_PREFIX, PAGE_EDITOR } from '../../constants';
+import { DATA_PREFIX, JOB_TYPE_3AXIS, MACHINE_SERIES, PAGE_EDITOR } from '../../constants';
 import { controller } from '../../lib/controller';
 import ModelGroup from '../models/ModelGroup';
 import ToolPathModelGroup from '../models/ToolPathModelGroup';
@@ -16,6 +16,16 @@ import SvgModelGroup from '../models/SvgModelGroup';
 const INITIAL_STATE = {
 
     page: PAGE_EDITOR,
+
+    jobType: JOB_TYPE_3AXIS,
+    isRotate: false,
+    jobSize: {
+        diameter: 24,
+        length: MACHINE_SERIES.ORIGINAL.setting.size.y,
+        x: MACHINE_SERIES.ORIGINAL.setting.size.x,
+        y: MACHINE_SERIES.ORIGINAL.setting.size.y,
+        z: MACHINE_SERIES.ORIGINAL.setting.size.z
+    },
 
     stage: CNC_LASER_STAGE.EMPTY,
     progress: 0,

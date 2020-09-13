@@ -6,7 +6,7 @@ import { threejsModelActions } from './threejs-model';
 import { svgModelActions } from './svg-model';
 import { baseActions, checkIsAllModelsPreviewed, computeTransformationSizeForTextVector } from './base';
 import { SVG_EVENT_ADD, SVG_EVENT_MOVE, SVG_EVENT_SELECT } from '../../constants/svg';
-import { JOB_TYPE_4AXIS, PAGE_EDITOR, PAGE_PROCESS, PROCESS_MODE_VECTOR } from '../../constants';
+import { JOB_TYPE_3AXIS, JOB_TYPE_4AXIS, PAGE_EDITOR, PAGE_PROCESS, PROCESS_MODE_VECTOR } from '../../constants';
 import { controller } from '../../lib/controller';
 
 const getCount = (() => {
@@ -1078,6 +1078,40 @@ export const actions = {
         svgModelGroup.showSelectedElement();
         svgModelGroup.updateTransformation(modelGroup.getSelectedModel().transformation);
         dispatch(baseActions.render(headType));
+    },
+
+    updateJobSize: (headType, newJobSize, jobType) => (dispatch, getState) => {
+        const { jobSize } = getState()[headType];
+        jobType = jobType || getState()[headType].jobType;
+
+        if (jobType === JOB_TYPE_3AXIS) {
+            dispatch(baseActions.updateState(headType, {
+                jobSize: {
+                    ...jobSize,
+                    ...newJobSize
+                }
+            }));
+        } else {
+            const diameter = newJobSize.diameter || jobSize.diameter;
+            const length = newJobSize.length || jobSize.length;
+            dispatch(baseActions.updateState(headType, {
+                jobSize: {
+                    ...jobSize,
+                    diameter: newJobSize.diameter || jobSize.diameter,
+                    length: newJobSize.length || jobSize.length,
+                    x: diameter * Math.PI / 2,
+                    y: length
+                }
+            }));
+        }
+    },
+
+    changeJobType: (headType, jobType) => (dispatch, getState) => {
+        const { size } = getState().machine;
+        dispatch(baseActions.updateState(headType, {
+            jobType: jobType
+        }));
+        dispatch(actions.updateJobSize(headType, size, jobType));
     }
 };
 

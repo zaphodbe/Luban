@@ -107,6 +107,7 @@ export class ViewPathRenderer {
             depth: depth,
             bevelEnabled: false
         });
+        // eslint-disable-next-line no-unused-vars
         const material = new THREE.MeshNormalMaterial();
         return new THREE.Mesh(geometry, material);
     }

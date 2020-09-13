@@ -130,40 +130,6 @@ export const actions = {
         });
     },
 
-    updateJobSize: (newJobSize, jobType) => (dispatch, getState) => {
-        const { jobSize } = getState().cnc;
-        jobType = jobType || getState().cnc.jobType;
-
-        if (jobType === JOB_TYPE_3AXIS) {
-            dispatch(editorActions.updateState('cnc', {
-                jobSize: {
-                    ...jobSize,
-                    ...newJobSize
-                }
-            }));
-        } else {
-            const diameter = newJobSize.diameter || jobSize.diameter;
-            const length = newJobSize.length || jobSize.length;
-            dispatch(editorActions.updateState('cnc', {
-                jobSize: {
-                    ...jobSize,
-                    diameter: newJobSize.diameter || jobSize.diameter,
-                    length: newJobSize.length || jobSize.length,
-                    x: diameter * Math.PI,
-                    y: length
-                }
-            }));
-        }
-    },
-
-    changeJobType: (jobType) => (dispatch, getState) => {
-        const { size } = getState().machine;
-        dispatch(editorActions.updateState('cnc', {
-            jobType: jobType
-        }));
-        dispatch(actions.updateJobSize(size, jobType));
-    },
-
     changeToolParams: (toolParams) => {
         return {
             type: ACTION_CHANGE_TOOL_PARAMS,

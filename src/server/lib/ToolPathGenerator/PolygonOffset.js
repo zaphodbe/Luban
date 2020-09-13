@@ -66,12 +66,25 @@ class PolygonOffset {
     _arcSegments = 5;
 
     constructor(vertices) {
-        if (!isArray(vertices) || !isArray(vertices[0]) || typeof vertices[0][0] !== 'number') {
-            throw new Error('Cannot construct PolygonOffset because vertices is error');
+        if (vertices) {
+            if (!isArray(vertices) || !isArray(vertices[0]) || typeof vertices[0][0] !== 'number') {
+                throw new Error('Cannot construct PolygonOffset because vertices is error');
+            }
+            this.vertices = this._preProcessVertices(vertices);
+            this._orientRings(this.vertices);
+            this._processContour();
         }
-        this.vertices = this._preProcessVertices(vertices);
-        this._orientRings(this.vertices);
-        this._processContour();
+    }
+
+    union(poly1, poly2) {
+        const result = martinez.union(poly1, poly2);
+        for (let i = 0; i < result.length; i++) {
+            const polys = result[i];
+            for (let j = 0; j < polys.length; j++) {
+                this._orientRings(polys[j], j % 2 === 0);
+            }
+        }
+        return result;
     }
 
     ext(dist) {
@@ -164,12 +177,18 @@ class PolygonOffset {
                 area += pt1[0] * pt2[1];
                 area -= pt2[0] * pt1[1];
             }
-            if ((area > 0 && order) || (area < 0 && !order)) {
-                ring.reverse();
+            if (order) {
+                if (area > 0) {
+                    ring.reverse();
+                }
+            } else {
+                if (area < 0) {
+                    ring.reverse();
+                }
             }
         } else {
             for (let i = 0; i < vertices.length; i++) {
-                this._orientRings(vertices[i]);
+                this._orientRings(vertices[i], order);
             }
         }
 

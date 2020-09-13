@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import i18n from '../../lib/i18n';
 import Anchor from '../../components/Anchor';
-import { actions as cncActions } from '../../flux/cnc';
+import { actions as editorActions } from '../../flux/editor';
 import { JOB_TYPE_3AXIS, JOB_TYPE_4AXIS, PAGE_EDITOR } from '../../constants';
 import { NumberInput as Input } from '../../components/Input';
 
@@ -130,9 +130,11 @@ class JobType extends PureComponent {
     }
 }
 
-const mapStateToProps = (state) => {
+const mapStateToProps = (state, ownProps) => {
+    const { headType } = ownProps;
     const { size } = state.machine;
-    const { page, jobType, jobSize } = state.cnc;
+    console.log('headType', headType);
+    const { page, jobType, jobSize } = state[headType];
 
     return {
         size,
@@ -142,10 +144,12 @@ const mapStateToProps = (state) => {
     };
 };
 
-const mapDispatchToProps = (dispatch) => {
+const mapDispatchToProps = (dispatch, ownProps) => {
+    const { headType } = ownProps;
+
     return {
-        changeJobType: (jobType) => dispatch(cncActions.changeJobType(jobType)),
-        updateJobSize: (jobSize) => dispatch(cncActions.updateJobSize(jobSize))
+        changeJobType: (jobType) => dispatch(editorActions.changeJobType(headType, jobType)),
+        updateJobSize: (jobSize) => dispatch(editorActions.updateJobSize(headType, jobSize))
     };
 };
 
