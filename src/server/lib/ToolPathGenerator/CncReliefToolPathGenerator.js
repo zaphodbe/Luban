@@ -329,42 +329,130 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
             }
         };
 
+        // const zMin = [];
+        //
+        // for (let i = 0; i < data.length; i++) {
+        //     zMin[i] = 0;
+        //     for (let j = 0; j < data[i].length; j++) {
+        //         const z = this._calculateThePrintZ(data[i][j]);
+        //         data[i][j] = z;
+        //         zMin[i] = Math.min(zMin[i], z);
+        //     }
+        // }
+
         const zMin = [];
 
-        for (let i = 0; i < data.length; i++) {
-            zMin[i] = 0;
-            for (let j = 0; j < data[i].length; j++) {
+        for (let j = 0; j < this.targetHeight; j++) {
+            zMin[j] = 0;
+            for (let i = 0; i < this.targetWidth; i++) {
                 const z = this._calculateThePrintZ(data[i][j]);
                 data[i][j] = z;
-                zMin[i] = Math.min(zMin[i], z);
+                zMin[j] = Math.min(zMin[j], z);
             }
         }
 
+        // while (cutDown) {
+        //     cutDown = false;
+        //     let isOrder = false;
+        //
+        //     for (let i = 0; i < this.targetWidth; ++i) {
+        //         const gX = normalizer.x(i);
+        //
+        //         let zState = null;
+        //
+        //         if (zMin[i] >= curDepth + this.stepDown) {
+        //             continue;
+        //         }
+        //
+        //         isOrder = !isOrder;
+        //
+        //         for (let k = 0; k < this.targetHeight; ++k) {
+        //             const j = isOrder ? k : this.targetHeight - 1 - k;
+        //             const matY = (this.targetHeight - j);
+        //             const gY = normalizer.y(matY);
+        //
+        //             let z = data[i][j];
+        //
+        //             if (k === 0) {
+        //                 if (z > currentZ) {
+        //                     currentZ = z;
+        //                     this.toolPath.move0Z(z, this.jogSpeed);
+        //                 }
+        //                 this.toolPath.move0XY(gX, gY, this.jogSpeed);
+        //             }
+        //
+        //             if (z < curDepth + this.stepDown) {
+        //                 move0Z(zState);
+        //
+        //                 zState = null;
+        //                 z = Math.max(curDepth, z);
+        //                 if (currentZ === z) {
+        //                     this.toolPath.move1Y(gY, this.workSpeed);
+        //                 } else {
+        //                     this.toolPath.move1YZ(gY, z, this.workSpeed);
+        //                 }
+        //                 currentZ = z;
+        //                 cutDown = true;
+        //             } else {
+        //                 if (!zState) {
+        //                     zState = { x: gX, y: gY, z: z, maxZ: z, f: this.jogSpeed };
+        //                 } else {
+        //                     zState = { x: gX, y: gY, z: z, maxZ: Math.max(z, zState.maxZ), f: this.jogSpeed };
+        //                 }
+        //             }
+        //         }
+        //
+        //         if (zState) {
+        //             currentZ = zState.maxZ;
+        //             move0Z(zState);
+        //         }
+        //
+        //         const p = i / (this.targetWidth - 1) / zSteps + cutDownTimes / zSteps;
+        //         if (p - progress > 0.05) {
+        //             progress = p;
+        //             this.emit('progress', progress);
+        //         }
+        //     }
+        //     this.toolPath.move0Z(this.safetyHeight, this.jogSpeed);
+        //     this.toolPath.move0XY(normalizedX0, normalizedHeight, this.jogSpeed);
+        //
+        //     currentZ = this.safetyHeight;
+        //     curDepth = Math.round((curDepth - this.stepDown) * 100) / 100;
+        //
+        //     if (curDepth < this.finalDepth) {
+        //         break;
+        //     }
+        //
+        //     cutDownTimes += 1;
+        // }
         while (cutDown) {
             cutDown = false;
             let isOrder = false;
 
-            for (let i = 0; i < this.targetWidth; ++i) {
-                const gX = normalizer.x(i);
+            for (let j = 0; j < this.targetHeight; j++) {
+                const gY = normalizer.y(this.targetHeight - 1 - j);
 
                 let zState = null;
 
-                if (zMin[i] >= curDepth + this.stepDown) {
+                if (zMin[j] >= curDepth + this.stepDown) {
                     continue;
                 }
 
                 isOrder = !isOrder;
 
-                for (let k = 0; k < this.targetHeight; ++k) {
-                    const j = isOrder ? k : this.targetHeight - 1 - k;
-                    const matY = (this.targetHeight - j);
-                    const gY = normalizer.y(matY);
-
-                    if (k === 0) {
-                        this.toolPath.move0XY(gX, gY, this.jogSpeed);
-                    }
+                for (let k = 0; k < this.targetWidth; k++) {
+                    const i = isOrder ? k : this.targetWidth - 1 - k;
+                    const gX = normalizer.x(i);
 
                     let z = data[i][j];
+
+                    if (k === 0) {
+                        if (z > currentZ) {
+                            currentZ = z;
+                            this.toolPath.move0Z(z, this.jogSpeed);
+                        }
+                        this.toolPath.move0XY(gX, gY, this.jogSpeed);
+                    }
 
                     if (z < curDepth + this.stepDown) {
                         move0Z(zState);
@@ -372,9 +460,9 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
                         zState = null;
                         z = Math.max(curDepth, z);
                         if (currentZ === z) {
-                            this.toolPath.move1Y(gY, this.workSpeed);
+                            this.toolPath.move1X(gX, this.workSpeed);
                         } else {
-                            this.toolPath.move1YZ(gY, z, this.workSpeed);
+                            this.toolPath.move1XZ(gX, z, this.workSpeed);
                         }
                         currentZ = z;
                         cutDown = true;
@@ -386,16 +474,13 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
                         }
                     }
                 }
+
                 if (zState) {
-                    zState.z = this.safetyHeight;
-                    zState.maxZ = Math.max(zState.maxZ, this.safetyHeight);
+                    currentZ = zState.maxZ;
                     move0Z(zState);
-                } else {
-                    this.toolPath.move0Z(this.safetyHeight, this.jogSpeed);
                 }
 
-                currentZ = this.safetyHeight;
-                const p = i / (this.targetWidth - 1) / zSteps + cutDownTimes / zSteps;
+                const p = j / (this.targetHeight - 1) / zSteps + cutDownTimes / zSteps;
                 if (p - progress > 0.05) {
                     progress = p;
                     this.emit('progress', progress);

@@ -128,9 +128,10 @@ export const generateGcode = (modelInfos, onProgress) => {
         + `;max_x(mm): ${boundingBox.max.x}\n`
         + `;max_y(mm): ${boundingBox.max.y}\n`
         + `;max_z(mm): ${boundingBox.max.z}\n`
+        + `;max_b(mm): ${boundingBox.max.b}\n`
         + `;min_x(mm): ${boundingBox.min.x}\n`
         + `;min_y(mm): ${boundingBox.min.y}\n`
-        + `;min_z(mm): ${boundingBox.min.z}\n`
+        + `;min_b(mm): ${boundingBox.min.b}\n`
         + `;work_speed(mm/minute): ${gcodeConfig.workSpeed}\n`
         + `;jog_speed(mm/minute): ${gcodeConfig.jogSpeed}\n`
         + `;power(%): ${power}\n`

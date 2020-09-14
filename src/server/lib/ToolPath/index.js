@@ -8,12 +8,14 @@ class ToolPath {
             max: {
                 x: null,
                 y: null,
-                z: 0
+                z: 0,
+                b: null
             },
             min: {
                 x: null,
                 y: null,
-                z: 0
+                z: 0,
+                b: null
             }
         };
         this.estimatedTime = 0;
@@ -104,6 +106,18 @@ class ToolPath {
         this.setCommand(commandObj);
     }
 
+    move1X(x, f) {
+        const rapidMoveRate = this.setRapidMoveRate(f);
+        let commandObj;
+        if (this.isRotate) {
+            commandObj = rapidMoveRate ? { 'G': 1, B: this.toB(x), F: rapidMoveRate } : { 'G': 1, B: this.toB(x) };
+        } else {
+            commandObj = rapidMoveRate ? { 'G': 1, X: x, F: rapidMoveRate } : { 'G': 1, X: x };
+        }
+
+        this.setCommand(commandObj);
+    }
+
     move1Y(y, f) {
         const rapidMoveRate = this.setRapidMoveRate(f);
         let commandObj;
@@ -127,6 +141,19 @@ class ToolPath {
 
         this.setCommand(commandObj);
     }
+
+    move1XZ(x, z, f) {
+        const rapidMoveRate = this.setRapidMoveRate(f);
+        let commandObj;
+        if (this.isRotate) {
+            commandObj = rapidMoveRate ? { 'G': 1, B: this.toB(x), Z: z, F: rapidMoveRate } : { 'G': 1, B: this.toB(x), Z: z };
+        } else {
+            commandObj = rapidMoveRate ? { 'G': 1, X: x, Z: z, F: rapidMoveRate } : { 'G': 1, X: x, Z: z };
+        }
+
+        this.setCommand(commandObj);
+    }
+
 
     move1YZ(y, z, f) {
         const rapidMoveRate = this.setRapidMoveRate(f);
@@ -181,14 +208,12 @@ class ToolPath {
     }
 
     toB(x) {
-        const d = this.state.Z || this.radius;
-        const b = x * (d / this.radius) / (2 * d * Math.PI) * 360;
+        const b = x / this.radius / (2 * Math.PI) * 360;
         return Math.round(b * 100) / 100;
     }
 
     spindleOn(options = {}) {
-        options.M = 3;
-        this.commands.push({ ...options });
+        this.commands.push({ M: 3, ...options });
     }
 
     spindleOff() {
@@ -256,6 +281,19 @@ class ToolPath {
                     boundingBox.max.y = commandObj.Y;
                 } else {
                     boundingBox.max.y = Math.max(boundingBox.max.y, commandObj.Y);
+                }
+            }
+
+            if (commandObj.B !== undefined) {
+                if (boundingBox.min.b === null) {
+                    boundingBox.min.b = commandObj.B;
+                } else {
+                    boundingBox.min.b = Math.min(boundingBox.min.b, commandObj.B);
+                }
+                if (boundingBox.max.b === null) {
+                    boundingBox.max.b = commandObj.B;
+                } else {
+                    boundingBox.max.b = Math.max(boundingBox.max.b, commandObj.B);
                 }
             }
         }
