@@ -58,8 +58,8 @@ const generateImageObject3D = (imageSrc, width, height, anchor) => {
 };
 
 const generateToolPathObject3D = (toolPath) => {
-    const toolPathRenderer = new ToolPathRenderer();
-    return toolPathRenderer.render(toolPath);
+    const toolPathRenderer = new ToolPathRenderer(toolPath);
+    return toolPathRenderer.render();
 };
 
 export { generateGcodeStr, generateToolPathObject3D, generateImageObject3D };

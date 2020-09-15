@@ -321,7 +321,7 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
         const move0Z = (zState) => {
             if (zState) {
                 const lastCommand = this.toolPath.getLastCommand();
-                if (lastCommand.G !== 0 || lastCommand.Z < zState.z) {
+                if (lastCommand.G !== 0 || lastCommand.Z < zState.maxZ) {
                     this.toolPath.move0Z(zState.maxZ, zState.f);
                 }
                 this.toolPath.move0XY(zState.x, zState.y, zState.f);
@@ -343,7 +343,7 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
         const zMin = [];
 
         for (let j = 0; j < this.targetHeight; j++) {
-            zMin[j] = 0;
+            zMin[j] = this.initialZ;
             for (let i = 0; i < this.targetWidth; i++) {
                 const z = this._calculateThePrintZ(data[i][j]);
                 data[i][j] = z;
@@ -447,10 +447,6 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
                     let z = data[i][j];
 
                     if (k === 0) {
-                        if (z > currentZ) {
-                            currentZ = z;
-                            this.toolPath.move0Z(z, this.jogSpeed);
-                        }
                         this.toolPath.move0XY(gX, gY, this.jogSpeed);
                     }
 
@@ -476,9 +472,14 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
                 }
 
                 if (zState) {
-                    currentZ = zState.maxZ;
+                    zState.z = this.initialZ;
+                    zState.maxZ = Math.max(zState.maxZ, this.initialZ);
                     move0Z(zState);
+                } else {
+                    this.toolPath.move0Z(this.initialZ, this.jogSpeed);
                 }
+
+                currentZ = this.initialZ;
 
                 const p = j / (this.targetHeight - 1) / zSteps + cutDownTimes / zSteps;
                 if (p - progress > 0.05) {

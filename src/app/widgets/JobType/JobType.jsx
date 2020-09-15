@@ -133,7 +133,6 @@ class JobType extends PureComponent {
 const mapStateToProps = (state, ownProps) => {
     const { headType } = ownProps;
     const { size } = state.machine;
-    console.log('headType', headType);
     const { page, jobType, jobSize } = state[headType];
 
     return {

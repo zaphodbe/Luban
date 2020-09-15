@@ -29,7 +29,7 @@ class LaserToolPathGenerator extends EventEmitter {
     }
 
     async generateToolPathObj(modelInfo, modelPath) {
-        const { headType, mode, gcodeConfig, sourceType, transformation } = modelInfo;
+        const { headType, mode, gcodeConfig, sourceType, transformation, isRotate, diameter } = modelInfo;
         const { positionX, positionY, positionZ } = transformation;
 
         const { movementMode } = gcodeConfig;
@@ -68,7 +68,9 @@ class LaserToolPathGenerator extends EventEmitter {
             positionX: positionX,
             positionY: positionY,
             positionZ: positionZ,
-            boundingBox: toolPath.boundingBox
+            boundingBox: toolPath.boundingBox,
+            isRotate: isRotate,
+            diameter: diameter
         };
     }
 
