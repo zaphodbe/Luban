@@ -81,7 +81,8 @@ const CURRENTDRAWING_INIT = {
 class SVGCanvas extends PureComponent {
     static propTypes = {
         className: PropTypes.string,
-        size: PropTypes.object
+        size: PropTypes.object,
+        materials: PropTypes.object
     };
 
     updateTime = 0;
@@ -129,6 +130,9 @@ class SVGCanvas extends PureComponent {
     componentWillReceiveProps(nextProps) {
         if (nextProps.size !== this.props.size) {
             this.updateCanvas(nextProps.size);
+        }
+        if (nextProps.materials !== this.props.materials) {
+            this.updateCanvas(null, nextProps.materials);
         }
     }
 
@@ -991,7 +995,10 @@ class SVGCanvas extends PureComponent {
         this.updateCanvas();
     };
 
-    updateCanvas = (size) => {
+    updateCanvas = (size, materials) => {
+        size = size || this.props.size;
+        materials = materials || this.props.materials;
+
         if (new Date().getTime() - this.updateTime < 20) {
             this.updateTime = new Date().getTime();
             return;
@@ -1003,7 +1010,7 @@ class SVGCanvas extends PureComponent {
 
         this.svgContainer.setAttribute('width', width);
         this.svgContainer.setAttribute('height', height);
-        size = size || this.props.size;
+
 
         // this.svgContainer.setAttribute('transform', `scale(${this.state.transform.scale.x}, ${this.state.transform.scale.y})`);
 
@@ -1015,6 +1022,7 @@ class SVGCanvas extends PureComponent {
 
         const x = (width - svgWidth) / 2 + this.offsetX * this.scale;
         const y = (height - svgHeight) / 2 + this.offsetY * this.scale;
+
 
         setAttributes(this.svgContent, {
             width: svgWidth,
@@ -1032,7 +1040,7 @@ class SVGCanvas extends PureComponent {
             viewBox: `0 0 ${viewBoxWidth} ${viewBoxHeight}`
         });
 
-        this.printableArea.updateScale({ size: size, scale: this.scale });
+        this.printableArea.updateScale({ size: size, materials: materials, scale: this.scale });
         this.svgContentGroup.updateScale(this.scale);
     };
 

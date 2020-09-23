@@ -8,21 +8,21 @@ import {
 } from '../actionType';
 import { actions as editorActions, CNC_LASER_STAGE } from '../editor';
 import ToolPathModelGroup from '../models/ToolPathModelGroup';
-import { CNC_TOOL_SNAP_V_BIT_CONFIG, JOB_TYPE_3AXIS, MACHINE_SERIES, PAGE_EDITOR } from '../../constants';
+import { CNC_TOOL_SNAP_V_BIT_CONFIG, MACHINE_SERIES, PAGE_EDITOR } from '../../constants';
 import SvgModelGroup from '../models/SvgModelGroup';
 
 const ACTION_CHANGE_TOOL_PARAMS = 'cnc/ACTION_CHANGE_TOOL_PARAMS';
 
 const INITIAL_STATE = {
 
-    jobType: JOB_TYPE_3AXIS,
-    isRotate: false,
-    jobSize: {
+    materials: {
+        isRotate: false,
         diameter: 24,
         length: MACHINE_SERIES.ORIGINAL.setting.size.y,
-        x: MACHINE_SERIES.ORIGINAL.setting.size.x,
-        y: MACHINE_SERIES.ORIGINAL.setting.size.y,
-        z: MACHINE_SERIES.ORIGINAL.setting.size.z
+        fixtureLength: 20,
+        x: 0,
+        y: 0,
+        z: 0
     },
 
     page: PAGE_EDITOR,

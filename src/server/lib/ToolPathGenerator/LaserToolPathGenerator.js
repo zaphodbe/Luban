@@ -68,6 +68,7 @@ class LaserToolPathGenerator extends EventEmitter {
             positionX: positionX,
             positionY: positionY,
             positionZ: positionZ,
+            rotationB: isRotate ? toolPath.toB(positionX) : 0,
             boundingBox: toolPath.boundingBox,
             isRotate: isRotate,
             diameter: diameter

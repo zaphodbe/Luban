@@ -10,7 +10,7 @@ import { editorProcess } from '../../lib/editor/process';
 import { pathWithRandomSuffix } from '../../lib/random-utils';
 import stockRemap from '../../lib/stock-remap';
 import trace from '../../lib/image-trace';
-import { ERR_INTERNAL_SERVER_ERROR, JOB_TYPE_4AXIS } from '../../constants';
+import { ERR_INTERNAL_SERVER_ERROR } from '../../constants';
 import DataStorage from '../../DataStorage';
 import { stitch, stitchEach } from '../../lib/image-stitch';
 import { calibrationPhoto, getCameraCalibration, getPhoto, setMatrix, takePhoto } from '../../lib/image-getPhoto';
@@ -27,7 +27,7 @@ export const set = (req, res) => {
     const uploadName = pathWithRandomSuffix(originalName);
     const uploadPath = `${DataStorage.tmpDir}/${uploadName}`;
 
-    const { jobType } = req.body;
+    const { isRotate } = req.body;
 
     async.series([
         (next) => {
@@ -67,7 +67,7 @@ export const set = (req, res) => {
                 res.send({
                     originalName: originalName,
                     uploadName: uploadName,
-                    width: jobType === JOB_TYPE_4AXIS ? Math.sqrt(width * width + height * height) : width,
+                    width: isRotate ? Math.sqrt(width * width + height * height) : width,
                     height
                 });
             } else {

@@ -98,7 +98,14 @@ class PolygonOffset {
         if (this.vertices.length === 1) {
             return this._orientRings([this.offsetPoint()]);
         } else {
-            return [this.margin(dist)[0], this.padding(dist, false)[0]];
+            const result = [];
+            for (const marginElement of this.margin(dist)) {
+                result.push(marginElement);
+            }
+            for (const paddingElement of this.padding(dist)) {
+                result.push(paddingElement);
+            }
+            return result;
         }
     }
 

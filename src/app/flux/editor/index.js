@@ -6,8 +6,9 @@ import { threejsModelActions } from './threejs-model';
 import { svgModelActions } from './svg-model';
 import { baseActions, checkIsAllModelsPreviewed, computeTransformationSizeForTextVector } from './base';
 import { SVG_EVENT_ADD, SVG_EVENT_MOVE, SVG_EVENT_SELECT } from '../../constants/svg';
-import { JOB_TYPE_3AXIS, JOB_TYPE_4AXIS, PAGE_EDITOR, PAGE_PROCESS, PROCESS_MODE_VECTOR } from '../../constants';
+import { PAGE_EDITOR, PAGE_PROCESS, PROCESS_MODE_VECTOR } from '../../constants';
 import { controller } from '../../lib/controller';
+import { round } from '../../../shared/lib/utils';
 
 const getCount = (() => {
     let count = 0;
@@ -145,7 +146,7 @@ export const actions = {
     generateModel: (headType, originalName, uploadName, sourceWidth, sourceHeight,
         mode, sourceType, config, gcodeConfig, transformation) => (dispatch, getState) => {
         const { size } = getState().machine;
-        const { jobType, toolParams } = getState()[headType];
+        const { materials, toolParams } = getState()[headType];
 
         sourceType = sourceType || getSourceType(originalName);
 
@@ -216,7 +217,7 @@ export const actions = {
             transformation,
             config,
             gcodeConfig,
-            isRotate: jobType === JOB_TYPE_4AXIS
+            isRotate: materials.isRotate
         };
 
 
@@ -369,7 +370,7 @@ export const actions = {
     },
 
     updateSelectedModelConfig: (headType, config) => (dispatch, getState) => {
-        const { jobType, modelGroup, svgModelGroup, toolPathModelGroup } = getState()[headType];
+        const { materials, modelGroup, svgModelGroup, toolPathModelGroup } = getState()[headType];
 
         const selectedModel = modelGroup.getSelectedModel();
         const options = {
@@ -387,7 +388,7 @@ export const actions = {
                 ...selectedModel.config,
                 ...config
             },
-            isRotate: jobType === JOB_TYPE_4AXIS
+            isRotate: materials.isRotate
         };
 
         console.log('config', config, options);
@@ -599,8 +600,8 @@ export const actions = {
             return;
         }
 
-        const { jobType, jobSize } = getState()[headType];
-        const { diameter = 0 } = jobSize || {};
+        const { materials } = getState()[headType];
+        const { isRotate = false, diameter = 0 } = materials || {};
 
         if (isProcess || autoPreviewEnabled) {
             const modelState = modelGroup.getSelectedModel()
@@ -611,7 +612,7 @@ export const actions = {
                     const taskInfo = {
                         ...modelState,
                         ...toolPathModelTaskInfo,
-                        isRotate: jobType === JOB_TYPE_4AXIS,
+                        isRotate: isRotate,
                         diameter: diameter
                     };
                     controller.commitToolPathTask({
@@ -634,8 +635,8 @@ export const actions = {
             return;
         }
 
-        const { jobType, jobSize } = getState()[headType];
-        const { diameter = 0 } = jobSize || {};
+        const { materials } = getState()[headType];
+        const { isRotate = false, diameter = 0 } = materials || {};
 
         if (isProcess || autoPreviewEnabled) {
             for (const model of modelGroup.getModels()) {
@@ -645,7 +646,7 @@ export const actions = {
                     const taskInfo = {
                         ...modelTaskInfo,
                         ...toolPathModelTaskInfo,
-                        isRotate: jobType === JOB_TYPE_4AXIS,
+                        isRotate: isRotate,
                         diameter: diameter
                     };
                     controller.commitToolPathTask({
@@ -819,7 +820,7 @@ export const actions = {
 
 
     onReceiveViewPathTaskResult: (headType, taskResult) => async (dispatch, getState) => {
-        const { toolPathModelGroup, jobSize } = getState()[headType];
+        const { toolPathModelGroup, materials } = getState()[headType];
 
         if (taskResult.taskStatus === 'failed') {
             dispatch(baseActions.updateState(headType, {
@@ -829,7 +830,7 @@ export const actions = {
             return;
         }
         const { viewPathFile } = taskResult;
-        toolPathModelGroup.receiveViewPathTaskResult(viewPathFile, jobSize).then(() => {
+        toolPathModelGroup.receiveViewPathTaskResult(viewPathFile, materials).then(() => {
             dispatch(baseActions.render(headType));
         });
     },
@@ -885,19 +886,20 @@ export const actions = {
      */
     generateViewPath: (headType) => (dispatch, getState) => {
         const modelInfos = [];
-        const { modelGroup, toolPathModelGroup, jobType, jobSize } = getState()[headType];
+        const { modelGroup, toolPathModelGroup, materials } = getState()[headType];
+        const { isRotate } = materials;
 
-        const { diameter = 0 } = jobSize || {};
+        const { diameter = 0 } = materials || {};
 
         for (const model of modelGroup.getModels()) {
-            if (model.hideFlag || model.mode === PROCESS_MODE_VECTOR) continue;
+            if (model.hideFlag || (isRotate && model.mode === PROCESS_MODE_VECTOR)) continue;
             const modelTaskInfo = model.getTaskInfo();
             const toolPathModelTaskInfo = toolPathModelGroup.getToolPathModelTaskInfo(modelTaskInfo.modelID);
             if (toolPathModelTaskInfo) {
                 const taskInfo = {
                     ...modelTaskInfo,
                     ...toolPathModelTaskInfo,
-                    isRotate: jobType === JOB_TYPE_4AXIS,
+                    isRotate: isRotate,
                     diameter: diameter
                 };
                 modelInfos.push(taskInfo);
@@ -1080,38 +1082,25 @@ export const actions = {
         dispatch(baseActions.render(headType));
     },
 
-    updateJobSize: (headType, newJobSize, jobType) => (dispatch, getState) => {
-        const { jobSize } = getState()[headType];
-        jobType = jobType || getState()[headType].jobType;
+    updateMaterials: (headType, newMaterials) => (dispatch, getState) => {
+        const { materials } = getState()[headType];
+        const allMaterials = {
+            ...materials,
+            ...newMaterials
+        };
 
-        if (jobType === JOB_TYPE_3AXIS) {
-            dispatch(baseActions.updateState(headType, {
-                jobSize: {
-                    ...jobSize,
-                    ...newJobSize
-                }
-            }));
+        if (allMaterials.isRotate) {
+            allMaterials.x = round(allMaterials.diameter * Math.PI, 2);
+            allMaterials.y = allMaterials.length;
         } else {
-            const diameter = newJobSize.diameter || jobSize.diameter;
-            const length = newJobSize.length || jobSize.length;
-            dispatch(baseActions.updateState(headType, {
-                jobSize: {
-                    ...jobSize,
-                    diameter: newJobSize.diameter || jobSize.diameter,
-                    length: newJobSize.length || jobSize.length,
-                    x: diameter * Math.PI / 2,
-                    y: length
-                }
-            }));
+            allMaterials.x = 0;
+            allMaterials.y = 0;
         }
-    },
-
-    changeJobType: (headType, jobType) => (dispatch, getState) => {
-        const { size } = getState().machine;
         dispatch(baseActions.updateState(headType, {
-            jobType: jobType
+            materials: {
+                ...allMaterials
+            }
         }));
-        dispatch(actions.updateJobSize(headType, size, jobType));
     }
 };
 

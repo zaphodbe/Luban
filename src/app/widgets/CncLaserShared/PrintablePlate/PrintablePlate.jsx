@@ -1,4 +1,4 @@
-import { MeshBasicMaterial, Object3D, Group, CylinderBufferGeometry, Mesh } from 'three';
+import { MeshBasicMaterial, Object3D, Group, CylinderBufferGeometry, Mesh, PlaneGeometry, DoubleSide } from 'three';
 import each from 'lodash/each';
 import colornames from 'colornames';
 
@@ -13,7 +13,7 @@ const METRIC_GRID_SPACING = 10; // 10 mm
 
 
 class PrintablePlate extends Object3D {
-    constructor(size) {
+    constructor(size, materials) {
         super();
         this.isPrintPlane = true;
         this.type = 'PrintPlane';
@@ -21,11 +21,15 @@ class PrintablePlate extends Object3D {
         // this.coordinateVisible = true;
         this.coordinateSystem = null;
         this.size = size;
+        this.materials = {
+            ...materials
+        };
         this._setup();
     }
 
-    updateSize(size) {
+    updateSize(size = this.size, materials = this.materials) {
         this.size = size;
+        this.materials = materials;
         this.remove(...this.children);
         this._setup();
     }
@@ -144,6 +148,28 @@ class PrintablePlate extends Object3D {
         this.targetPoint.name = 'TargetPoint';
         this.targetPoint.visible = true;
         this.add(this.targetPoint);
+
+        // this._setMaterialsRect();
+    }
+
+    _setMaterialsRect() {
+        // eslint-disable-next-line no-unused-vars
+        const { x = 0, y = 0, fixtureLength = 0 } = this.materials;
+
+        if (!x && !y) {
+            return;
+        }
+
+        const editableAreaGeometry = new PlaneGeometry(x, y, 1, 1);
+        const editableAreaMesh = new Mesh(editableAreaGeometry, new MeshBasicMaterial({ color: '#fff', opacity: 0.5, side: DoubleSide }));
+        editableAreaMesh.position.y = y / 2 + 0.1;
+
+        const nonEditableAreaGeometry = new PlaneGeometry(x, Math.min(fixtureLength, y), 1, 1);
+        const nonEditableAreaMesh = new Mesh(nonEditableAreaGeometry, new MeshBasicMaterial({ color: '#FFFBFB', opacity: 0.5, side: DoubleSide }));
+        nonEditableAreaMesh.position.y = y + 0.1 - fixtureLength / 2;
+
+        this.add(editableAreaMesh);
+        this.add(nonEditableAreaMesh);
     }
 
     changeCoordinateVisibility(value) {

@@ -193,7 +193,7 @@ export default class CNCToolPathGenerator extends EventEmitter {
 
     // Static method to generate `ToolPath` from SVG
     generateToolPath(svg, modelInfo) {
-        const { isRotate, diameter, gcodeConfig, transformation } = modelInfo;
+        const { isRotate, diameter, gcodeConfig } = modelInfo;
         const radius = diameter / 2;
         const {
             targetDepth, stepDown,
@@ -209,7 +209,7 @@ export default class CNCToolPathGenerator extends EventEmitter {
             svg.viewBox[1],
             svg.viewBox[1] + svg.viewBox[3],
             { x: 1, y: 1 },
-            { x: isRotate ? transformation.positionX : 0, y: 0 }
+            { x: 0, y: 0 }
         );
 
         const toolPath = new Toolpath({ isRotate, radius });
@@ -330,7 +330,7 @@ export default class CNCToolPathGenerator extends EventEmitter {
 
     generateToolPathObj(svg, modelInfo) {
         // const { transformation, source } = modelInfo;
-        const { headType, mode, transformation, gcodeConfig, isRotate } = modelInfo;
+        const { headType, mode, transformation, gcodeConfig, isRotate, diameter } = modelInfo;
 
         const { positionX, positionY, positionZ } = transformation;
 
@@ -351,11 +351,13 @@ export default class CNCToolPathGenerator extends EventEmitter {
             movementMode: (headType === 'laser' && mode === 'greyscale') ? gcodeConfig.movementMode : '',
             data: toolPath.commands,
             estimatedTime: toolPath.estimatedTime * 1.4,
-            positionX: positionX,
+            positionX: isRotate ? 0 : positionX,
             positionY: positionY,
             positionZ: positionZ,
+            rotationB: isRotate ? toolPath.toB(positionX) : 0,
             boundingBox: boundingBox,
-            isRotate: isRotate
+            isRotate: isRotate,
+            diameter: diameter
         };
     }
 
@@ -371,6 +373,16 @@ export default class CNCToolPathGenerator extends EventEmitter {
 
 
         this._processSVG(svg, modelInfo);
+
+        const normalizer = new Normalizer(
+            'Center',
+            svg.viewBox[0],
+            svg.viewBox[0] + svg.viewBox[2],
+            svg.viewBox[1],
+            svg.viewBox[1] + svg.viewBox[3],
+            { x: 1, y: 1 },
+            { x: 0, y: 0 }
+        );
 
         // radius needed to carve to `targetDepth`
         const radiusNeeded = (toolAngle === 180)
@@ -394,7 +406,7 @@ export default class CNCToolPathGenerator extends EventEmitter {
                 }
 
                 const result = new PolygonOffset(path.points).ext(off);
-                polygons = polygons === null ? [result] : martinez.union(polygons, result);
+                polygons = polygons === null ? [result] : martinez.union(polygons, [result]);
             }
             const p = (i + 1) / svg.shapes.length;
             if (p - progress > 0.05) {
@@ -403,43 +415,62 @@ export default class CNCToolPathGenerator extends EventEmitter {
             }
         }
 
-        const viewPaths = [];
+        const boundingBox = {
+            min: {
+                x: positionX - width / 2 - off,
+                y: positionY - height / 2 - off,
+                z: -targetDepth
+            },
+            max: {
+                x: positionX + width / 2 + off,
+                y: positionY + height / 2 + off,
+                z: 0
+            },
+            length: {
+                x: width + 2 * off,
+                y: height + 2 * off,
+                z: targetDepth
+            }
+        };
+
+        const viewPath = [[
+            [-off, -off],
+            [-off, boundingBox.length.y - off],
+            [boundingBox.length.x - off, boundingBox.length.y - off],
+            [boundingBox.length.x - off, -off],
+            [-off, -off]
+        ]];
         for (const polygon of polygons) {
-            const viewPath = [];
             for (const path of polygon) {
-                for (const point of path) {
-                    viewPath.push({ x: point[0], y: point[1] });
+                viewPath.push(path);
+            }
+        }
+
+        const data = [];
+
+        for (let i = 0; i < viewPath.length; i++) {
+            let order = true;
+            for (let j = 0; j < viewPath.length; j++) {
+                if (i === j) {
+                    continue;
+                }
+                if (isPointInPolygon(viewPath[i][0], viewPath[j])) {
+                    order = !order;
                 }
             }
-            viewPaths.push(viewPath);
+            new PolygonOffset()._orientRings(viewPath[i], order);
+            data.push(viewPath[i].map(v => { return { x: normalizer.x(v[0]), y: normalizer.y(v[1]) }; }));
         }
 
         return {
-            plane: 'XY',
             sourceType: sourceType,
             mode: mode,
             positionX: positionX,
             positionY: positionY,
             positionZ: positionZ,
             targetDepth: targetDepth,
-            boundingBox: {
-                min: {
-                    x: positionX - width / 2,
-                    y: positionY - height / 2,
-                    z: -targetDepth
-                },
-                max: {
-                    x: positionX + width / 2,
-                    y: positionY + height / 2,
-                    z: 0
-                },
-                length: {
-                    x: width,
-                    y: height,
-                    z: targetDepth
-                }
-            },
-            data: viewPaths
+            boundingBox: boundingBox,
+            data: data
         };
     }
 }

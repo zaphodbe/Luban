@@ -14,6 +14,7 @@ class ReliefGcodeParameters extends PureComponent {
         disabled: PropTypes.bool,
         size: PropTypes.object.isRequired,
         targetDepth: PropTypes.number,
+        materials: PropTypes.object,
         stepDown: PropTypes.number,
         safetyHeight: PropTypes.number,
         stopHeight: PropTypes.number,
@@ -50,8 +51,8 @@ class ReliefGcodeParameters extends PureComponent {
     };
 
     render() {
-        const { size, disabled } = this.props;
-        const { targetDepth, stepDown, safetyHeight, stopHeight, density } = this.props;
+        const { size, disabled, materials, targetDepth, stepDown, safetyHeight, stopHeight, density } = this.props;
+        const { isRotate } = materials;
         return (
             <div>
                 <Anchor className="sm-parameter-header" onClick={this.actions.onToggleExpand}>
@@ -68,26 +69,28 @@ class ReliefGcodeParameters extends PureComponent {
                 {this.state.expanded && (
                     <React.Fragment>
                         <div>
-                            <TipTrigger
-                                title={i18n._('Target Depth')}
-                                content={i18n._('Enter the depth of the carved image. The depth cannot be deeper than the flute length.')}
-                            >
-                                <div
-                                    className="sm-parameter-row"
+                            {!isRotate && (
+                                <TipTrigger
+                                    title={i18n._('Target Depth')}
+                                    content={i18n._('Enter the depth of the carved image. The depth cannot be deeper than the flute length.')}
                                 >
-                                    <span className="sm-parameter-row__label">{i18n._('Target Depth')}</span>
-                                    <Input
-                                        disabled={disabled}
-                                        className="sm-parameter-row__input"
-                                        value={targetDepth}
-                                        min={0.01}
-                                        max={size.z}
-                                        step={0.1}
-                                        onChange={this.actions.onChangeTargetDepth}
-                                    />
-                                    <span className="sm-parameter-row__input-unit">dot/mm</span>
-                                </div>
-                            </TipTrigger>
+                                    <div
+                                        className="sm-parameter-row"
+                                    >
+                                        <span className="sm-parameter-row__label">{i18n._('Target Depth')}</span>
+                                        <Input
+                                            disabled={disabled}
+                                            className="sm-parameter-row__input"
+                                            value={targetDepth}
+                                            min={0.01}
+                                            max={size.z}
+                                            step={0.1}
+                                            onChange={this.actions.onChangeTargetDepth}
+                                        />
+                                        <span className="sm-parameter-row__input-unit">dot/mm</span>
+                                    </div>
+                                </TipTrigger>
+                            )}
 
                             <TipTrigger
                                 title={i18n._('Step Down')}
@@ -176,10 +179,11 @@ class ReliefGcodeParameters extends PureComponent {
 
 const mapStateToProps = (state) => {
     const machine = state.machine;
-    const { gcodeConfig } = state.cnc;
+    const { gcodeConfig, materials } = state.cnc;
     const { targetDepth, stepDown, safetyHeight, stopHeight, density } = gcodeConfig;
     return {
         size: machine.size,
+        materials,
         targetDepth,
         stepDown,
         safetyHeight,

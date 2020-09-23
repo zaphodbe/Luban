@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import i18n from '../../lib/i18n';
 import Anchor from '../../components/Anchor';
 import { actions as editorActions } from '../../flux/editor';
-import { JOB_TYPE_3AXIS, JOB_TYPE_4AXIS, PAGE_EDITOR } from '../../constants';
+import { PAGE_EDITOR } from '../../constants';
 import { NumberInput as Input } from '../../components/Input';
 
 class JobType extends PureComponent {
@@ -16,11 +16,9 @@ class JobType extends PureComponent {
 
         size: PropTypes.object.isRequired,
 
-        jobType: PropTypes.string.isRequired,
-        jobSize: PropTypes.object.isRequired,
+        materials: PropTypes.object.isRequired,
 
-        changeJobType: PropTypes.func.isRequired,
-        updateJobSize: PropTypes.func.isRequired
+        updateMaterials: PropTypes.func.isRequired
     };
 
     state = {
@@ -39,16 +37,14 @@ class JobType extends PureComponent {
     }
 
     render() {
-        const { size, jobType, jobSize } = this.props;
-        const { diameter, length } = jobSize;
-
-        const isRotate = jobType === JOB_TYPE_4AXIS;
+        const { size, materials } = this.props;
+        const { isRotate, diameter, length } = materials;
 
         return (
             <React.Fragment>
                 <div className="container-fluid">
                     <div className="row">
-                        <Anchor className="col-6" onClick={() => { this.props.changeJobType(JOB_TYPE_3AXIS); }}>
+                        <Anchor className="col-6" onClick={() => { this.props.updateMaterials({ isRotate: false }); }}>
                             <div>
                                 <i
                                     style={{
@@ -69,7 +65,7 @@ class JobType extends PureComponent {
                                 alt="3 Axis CNC"
                             />
                         </Anchor>
-                        <Anchor className="col-6" onClick={() => { this.props.changeJobType(JOB_TYPE_4AXIS); }}>
+                        <Anchor className="col-6" onClick={() => { this.props.updateMaterials({ isRotate: true }); }}>
                             <div>
                                 <i
                                     style={{
@@ -104,9 +100,9 @@ class JobType extends PureComponent {
                                 disabled={false}
                                 className="sm-parameter-row__input"
                                 value={diameter}
-                                max={size.x / Math.PI}
+                                max={size.x}
                                 min={0.1}
-                                onChange={(value) => { this.props.updateJobSize({ diameter: value }); }}
+                                onChange={(value) => { this.props.updateMaterials({ diameter: value }); }}
                             />
                             <span className="sm-parameter-row__input-unit">mm</span>
                         </div>
@@ -118,7 +114,7 @@ class JobType extends PureComponent {
                                 value={length}
                                 max={size.y}
                                 min={0.1}
-                                onChange={(value) => { this.props.updateJobSize({ length: value }); }}
+                                onChange={(value) => { this.props.updateMaterials({ length: value }); }}
                             />
                             <span className="sm-parameter-row__input-unit">mm</span>
                         </div>
@@ -133,13 +129,12 @@ class JobType extends PureComponent {
 const mapStateToProps = (state, ownProps) => {
     const { headType } = ownProps;
     const { size } = state.machine;
-    const { page, jobType, jobSize } = state[headType];
+    const { page, materials } = state[headType];
 
     return {
         size,
         page,
-        jobType,
-        jobSize
+        materials
     };
 };
 
@@ -147,8 +142,7 @@ const mapDispatchToProps = (dispatch, ownProps) => {
     const { headType } = ownProps;
 
     return {
-        changeJobType: (jobType) => dispatch(editorActions.changeJobType(headType, jobType)),
-        updateJobSize: (jobSize) => dispatch(editorActions.updateJobSize(headType, jobSize))
+        updateMaterials: (materials) => dispatch(editorActions.updateMaterials(headType, materials))
     };
 };
 

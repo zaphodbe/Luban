@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { isZero, isEqual } from '../../../shared/lib/utils';
+import { isEqual, isZero } from '../../../shared/lib/utils';
 
 class ToolPath {
     constructor(options = {}) {
@@ -75,6 +75,9 @@ class ToolPath {
     }
 
     move0XYZ(x, y, z, f) {
+        if (this.isRotate) {
+            f = this.toRotateF(x - this.state.X, y - this.state.Y, z - this.state.Z, f);
+        }
         const moveRate = this.setMoveRate(f);
         let commandObj;
         if (this.isRotate) {
@@ -87,6 +90,9 @@ class ToolPath {
     }
 
     move0XY(x, y, f) {
+        if (this.isRotate) {
+            f = this.toRotateF(x - this.state.X, y - this.state.Y, 0, f);
+        }
         const moveRate = this.setMoveRate(f);
         let commandObj;
         if (this.isRotate) {
@@ -107,6 +113,9 @@ class ToolPath {
     }
 
     move1X(x, f) {
+        if (this.isRotate) {
+            f = this.toRotateF(x - this.state.X, 0, 0, f);
+        }
         const rapidMoveRate = this.setRapidMoveRate(f);
         let commandObj;
         if (this.isRotate) {
@@ -131,6 +140,9 @@ class ToolPath {
     }
 
     move1XY(x, y, f) {
+        if (this.isRotate) {
+            f = this.toRotateF(x - this.state.X, y - this.state.Y, 0, f);
+        }
         const rapidMoveRate = this.setRapidMoveRate(f);
         let commandObj;
         if (this.isRotate) {
@@ -143,6 +155,9 @@ class ToolPath {
     }
 
     move1XZ(x, z, f) {
+        if (this.isRotate) {
+            f = this.toRotateF(x - this.state.X, 0, z - this.state.Z, f);
+        }
         const rapidMoveRate = this.setRapidMoveRate(f);
         let commandObj;
         if (this.isRotate) {
@@ -169,6 +184,9 @@ class ToolPath {
 
 
     move1XYZ(x, y, z, f) {
+        if (this.isRotate) {
+            f = this.toRotateF(x - this.state.X, y - this.state.Y, z - this.state.Z, f);
+        }
         const rapidMoveRate = this.setRapidMoveRate(f);
         let commandObj;
         if (this.isRotate) {
@@ -210,6 +228,18 @@ class ToolPath {
     toB(x) {
         const b = x / this.radius / (2 * Math.PI) * 360;
         return Math.round(b * 100) / 100;
+    }
+
+    toRotateF(db = 0, dy = 0, dz = 0, f) {
+        if (db === 0 || this.radius === 0) {
+            return f;
+        }
+        if (dy === 0 && dz === 0) {
+            return Math.round(f * 360 / Math.PI / this.radius / 2);
+        }
+        const s = db * db + dy * dy + dz * dz;
+        const ns = (db * 2 * Math.PI * this.radius / 360) * (db * 2 * Math.PI * this.radius / 360) + dy * dy + dz * dz;
+        return Math.round(Math.sqrt(s / ns) * f);
     }
 
     spindleOn(options = {}) {

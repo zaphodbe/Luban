@@ -10,6 +10,7 @@ import { SVG_EVENT_ADD, SVG_EVENT_CONTEXTMENU, SVG_EVENT_MODE, SVG_EVENT_MOVE, S
 class SVGEditor extends PureComponent {
     static propTypes = {
         size: PropTypes.object.isRequired,
+        materials: PropTypes.object,
         svgModelGroup: PropTypes.object,
         showContextMenu: PropTypes.func,
 
@@ -117,6 +118,7 @@ class SVGEditor extends PureComponent {
                         <SVGCanvas
                             className={styles['svg-content']}
                             size={this.props.size}
+                            materials={this.props.materials}
                             ref={this.canvas}
                         />
                     </div>

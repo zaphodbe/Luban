@@ -201,8 +201,8 @@ class ToolPathModelGroup {
                 (data) => {
                     this.viewPathObj && (this.viewPathObjs.remove(this.viewPathObj));
 
-                    const viewPath = JSON.parse(data);
-                    this.viewPathObj = new ViewPathRenderer().render(viewPath, size);
+                    const viewPathObj = JSON.parse(data);
+                    this.viewPathObj = new ViewPathRenderer().render(viewPathObj, size);
 
                     this.viewPathObjs.add(this.viewPathObj);
 

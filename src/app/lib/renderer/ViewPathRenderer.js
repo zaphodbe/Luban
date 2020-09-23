@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { PROCESS_MODE_VECTOR } from '../../constants';
 
 export class ViewPathRenderer {
     render(viewPaths, size) {
@@ -12,42 +13,77 @@ export class ViewPathRenderer {
         return g;
     }
 
+    _generateSvgViewPathObj(viewPath) {
+        const { targetDepth, data, positionX, positionY } = viewPath;
+        const shapePath = new THREE.ShapePath();
+        for (let i = 0; i < data.length; i++) {
+            const path = data[i];
+            shapePath.moveTo(path[0].x, path[0].y);
+            for (let j = 1; j < path.length; j++) {
+                shapePath.lineTo(path[j].x, path[j].y);
+            }
+        }
+
+        const mesh = this._generateMesh(shapePath.toShapes(), targetDepth);
+        mesh.position.x = positionX;
+        mesh.position.y = positionY;
+        mesh.position.z = -targetDepth;
+
+        return mesh;
+    }
+
+    _generateViewPathObj(viewPath) {
+        const { isRotate, diameter, width, height, data } = viewPath;
+
+        let geometry = null;
+        if (isRotate) {
+            geometry = new THREE.CylinderBufferGeometry(diameter / 2, diameter / 2, height, data[0].length - 1, data.length - 1);
+        } else {
+            geometry = new THREE.PlaneBufferGeometry(width, height, data[0].length - 1, data.length - 1);
+        }
+        const positions = geometry.attributes.position.array;
+
+        for (let i = 0; i < data.length; i++) {
+            for (let j = 0; j < data[i].length; j++) {
+                const index = (i * data[i].length + j) * 3;
+                positions[index] = data[i][j].x;
+                positions[index + 2] = data[i][j].y;
+            }
+        }
+
+        geometry.computeFaceNormals();
+        geometry.computeVertexNormals();
+
+        const mesh = new THREE.Mesh(geometry, new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
+
+        if (viewPath.positionX) {
+            mesh.position.x = viewPath.positionX;
+        }
+        if (viewPath.positionY) {
+            mesh.position.y = viewPath.positionY;
+        }
+        if (viewPath.rotationB) {
+            mesh.rotation.y = viewPath.rotationB / 180 * Math.PI;
+        }
+
+        return mesh;
+    }
+
     _generateViewPathObjs(viewPaths) {
         const group = new THREE.Group();
         for (const viewPath of viewPaths.data) {
-            const viewPathGroup = new THREE.Group();
+            const { mode, boundingBox } = viewPath;
+            const mesh = mode === PROCESS_MODE_VECTOR
+                ? this._generateSvgViewPathObj(viewPath)
+                : this._generateViewPathObj(viewPath);
 
-            const { boundingBox, depth = 1, initZ = 0, stepOver = 0 } = viewPath;
-
-            for (let i = 0; i < viewPath.data.length; i++) {
-                const shape = new THREE.Shape(viewPath.data[i]);
-
-                const mesh = this._generateMesh(shape, depth);
-                mesh.position.z = initZ + stepOver * i;
-
-                viewPathGroup.add(mesh);
-            }
-            if (viewPath.positionX) {
-                viewPathGroup.position.x = viewPath.positionX;
-            }
-            if (viewPath.positionY) {
-                viewPathGroup.position.y = viewPath.positionY;
-            }
-            if (viewPath.rotationX) {
-                viewPathGroup.rotation.x = viewPath.rotationX;
-            }
-            if (viewPath.rotationY) {
-                viewPathGroup.rotation.Y = viewPath.rotationY;
-            }
-
-            const boxPoints = this._generateByBox(boundingBox.min, boundingBox.max);
-            const boxMesh = this._generateMesh(new THREE.Shape(boxPoints), viewPaths.targetDepth - boundingBox.length.z);
-            boxMesh.position.z = -viewPaths.targetDepth;
-
-            group.add(viewPathGroup);
             if (!viewPaths.isRotate) {
+                const boxPoints = this._generateByBox(boundingBox.min, boundingBox.max);
+                const boxMesh = this._generateMesh(new THREE.Shape(boxPoints), viewPaths.targetDepth - boundingBox.length.z);
+                boxMesh.position.z = -viewPaths.targetDepth;
                 group.add(boxMesh);
             }
+            group.add(mesh);
         }
 
         return group;

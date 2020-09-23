@@ -30,6 +30,7 @@ function humanReadableTime(t) {
 class Visualizer extends Component {
     static propTypes = {
         page: PropTypes.string.isRequired,
+        materials: PropTypes.object,
         stage: PropTypes.number.isRequired,
         progress: PropTypes.number.isRequired,
         hasModel: PropTypes.bool.isRequired,
@@ -130,8 +131,8 @@ class Visualizer extends Component {
     constructor(props) {
         super(props);
 
-        const size = props.size;
-        this.printableArea = new PrintablePlate(size);
+        const { size, materials } = props;
+        this.printableArea = new PrintablePlate(size, materials);
     }
 
     componentDidMount() {
@@ -152,9 +153,9 @@ class Visualizer extends Component {
     componentWillReceiveProps(nextProps) {
         const { renderingTimestamp } = nextProps;
 
-        if (!isEqual(nextProps.size, this.props.size)) {
-            const size = nextProps.size;
-            this.printableArea.updateSize(size);
+        if (!isEqual(nextProps.size, this.props.size) || !isEqual(nextProps.materials, this.props.materials)) {
+            const { size, materials } = nextProps;
+            this.printableArea.updateSize(size, materials);
             this.canvas.current.setCamera(new THREE.Vector3(0, 0, Math.min(size.z, 300)), new THREE.Vector3());
         }
 
@@ -321,6 +322,7 @@ class Visualizer extends Component {
                     <CncLaserSvgEditor
                         ref={this.svgCanvas}
                         size={this.props.size}
+                        materials={this.props.materials}
                         svgModelGroup={this.props.svgModelGroup}
                         insertDefaultTextVector={this.props.insertDefaultTextVector}
                         showContextMenu={this.showContextMenu}
@@ -484,10 +486,12 @@ class Visualizer extends Component {
 }
 
 const mapStateToProps = (state) => {
-    const { jobSize, page, selectedModelID, modelGroup, svgModelGroup, toolPathModelGroup, hasModel, renderingTimestamp, stage, progress } = state.cnc;
+    const { size } = state.machine;
+    const { page, materials, selectedModelID, modelGroup, svgModelGroup, toolPathModelGroup, hasModel, renderingTimestamp, stage, progress } = state.cnc;
     return {
         page,
-        size: jobSize,
+        materials,
+        size,
         // model,
         modelGroup,
         svgModelGroup,

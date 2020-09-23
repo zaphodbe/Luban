@@ -26,10 +26,6 @@ export const HEAD_TYPE_CNC = 'CNC';
 // Workflow State
 
 
-// job type
-export const JOB_TYPE_3AXIS = '3axis';
-export const JOB_TYPE_4AXIS = '4axis';
-
 // Connection Status
 export const CONNECTION_STATUS_IDLE = 'idle';
 export const CONNECTION_STATUS_CONNECTING = 'connecting';

@@ -244,8 +244,8 @@ const generateCNCDefaults = (mode, sourceType) => {
                 stopHeight: 10,
                 density: 5,
                 jogSpeed: 3000,
-                workSpeed: 600,
-                plungeSpeed: 600,
+                workSpeed: 300,
+                plungeSpeed: 300,
                 dwellTime: ABSENT_VALUE,
                 isModel: true
             };
@@ -263,8 +263,8 @@ const generateCNCDefaults = (mode, sourceType) => {
                 stopHeight: 10,
                 density: 5,
                 jogSpeed: 3000,
-                workSpeed: 600,
-                plungeSpeed: 600,
+                workSpeed: 300,
+                plungeSpeed: 300,
                 dwellTime: ABSENT_VALUE
             };
         }
@@ -287,8 +287,8 @@ const generateCNCDefaults = (mode, sourceType) => {
             tabSpace: 24,
             anchor: 'Center',
             jogSpeed: 3000,
-            workSpeed: 600,
-            plungeSpeed: 600,
+            workSpeed: 300,
+            plungeSpeed: 300,
             dwellTime: ABSENT_VALUE
         };
     }

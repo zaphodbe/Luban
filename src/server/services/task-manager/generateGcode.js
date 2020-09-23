@@ -67,6 +67,9 @@ export const generateGcode = (modelInfos, onProgress) => {
 
     const writeStream = fs.createWriteStream(outputFilePathTmp, 'utf-8');
 
+    let isRotate;
+    let diameter;
+
     for (let i = 0; i < modelInfos.length; i++) {
         const modelInfo = modelInfos[i];
         const { toolPathFilename, gcodeConfig, mode } = modelInfo;
@@ -102,6 +105,9 @@ export const generateGcode = (modelInfos, onProgress) => {
             estimatedTime *= gcodeConfig.multiPasses;
         }
 
+        isRotate = toolPathObj.isRotate;
+        diameter = toolPathObj.diameter;
+
         if (boundingBox === null) {
             boundingBox = toolPathObj.boundingBox;
         } else {
@@ -121,10 +127,11 @@ export const generateGcode = (modelInfos, onProgress) => {
 
     let headerStart = ';Header Start\n'
         + `;header_type: ${headType}\n`
-        + `;thumbnail: ${thumbnail}\n`
         + `;renderMethod: ${renderMethod}\n`
         + ';file_total_lines: fileTotalLines\n'
         + `;estimated_time(s): ${estimatedTime}\n`
+        + `;is_rotate: ${isRotate}\n`
+        + `;diameter: ${diameter}\n`
         + `;max_x(mm): ${boundingBox.max.x}\n`
         + `;max_y(mm): ${boundingBox.max.y}\n`
         + `;max_z(mm): ${boundingBox.max.z}\n`
@@ -135,6 +142,7 @@ export const generateGcode = (modelInfos, onProgress) => {
         + `;work_speed(mm/minute): ${gcodeConfig.workSpeed}\n`
         + `;jog_speed(mm/minute): ${gcodeConfig.jogSpeed}\n`
         + `;power(%): ${power}\n`
+        + `;thumbnail: ${thumbnail}\n`
         + ';Header End\n'
         + '\n';
 

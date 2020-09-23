@@ -196,21 +196,21 @@ const SERIES_STATES = {
     A150: {
         laser: {
             default: {
-                widgets: ['cnc-laser-object-list', 'laser-params', 'laser-output']
+                widgets: ['job-type', 'cnc-laser-object-list', 'laser-params', 'laser-output']
             }
         }
     },
     A250: {
         laser: {
             default: {
-                widgets: ['cnc-laser-object-list', 'laser-params', 'laser-output']
+                widgets: ['job-type', 'cnc-laser-object-list', 'laser-params', 'laser-output']
             }
         }
     },
     A350: {
         laser: {
             default: {
-                widgets: ['cnc-laser-object-list', 'laser-params', 'laser-output']
+                widgets: ['job-type', 'cnc-laser-object-list', 'laser-params', 'laser-output']
             }
         }
     }
