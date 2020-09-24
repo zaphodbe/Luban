@@ -188,7 +188,7 @@ const generateCNCDefaults = (mode, sourceType) => {
                     break;
                 default:
                     config = {
-                        invert: true
+                        invert: false
                     };
                     break;
             }

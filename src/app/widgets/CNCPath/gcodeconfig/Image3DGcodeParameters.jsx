@@ -52,7 +52,7 @@ class ReliefGcodeParameters extends PureComponent {
 
     render() {
         const { size, disabled, materials, targetDepth, stepDown, safetyHeight, stopHeight, density } = this.props;
-        const { isRotate } = materials;
+        const { isRotate, diameter } = materials;
         return (
             <div>
                 <Anchor className="sm-parameter-header" onClick={this.actions.onToggleExpand}>
@@ -103,7 +103,7 @@ class ReliefGcodeParameters extends PureComponent {
                                         className="sm-parameter-row__input"
                                         value={stepDown}
                                         min={0.01}
-                                        max={targetDepth}
+                                        max={isRotate ? diameter : targetDepth}
                                         step={0.1}
                                         onChange={this.actions.onChangeStepDown}
                                     />

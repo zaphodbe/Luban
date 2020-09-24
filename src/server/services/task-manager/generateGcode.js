@@ -5,6 +5,7 @@ import DataStorage from '../../DataStorage';
 import { GcodeGenerator } from '../../lib/GcodeGenerator';
 import logger from '../../lib/logger';
 import { pathWithRandomSuffix } from '../../../shared/lib/random-utils';
+import { isNull } from '../../../shared/lib/utils';
 
 const log = logger('service:TaskManager');
 
@@ -41,6 +42,36 @@ const addHeaderToFile = (header, name, tmpFilePath, filePath, thumbnail) => {
             });
         });
     });
+};
+
+const checkoutBoundingBoxIsNull = (boundingBox) => {
+    if (!boundingBox) {
+        return;
+    }
+    if (isNull(boundingBox.max.x)) {
+        boundingBox.max.x = 0;
+    }
+    if (isNull(boundingBox.min.x)) {
+        boundingBox.min.x = 0;
+    }
+    if (isNull(boundingBox.max.y)) {
+        boundingBox.max.y = 0;
+    }
+    if (isNull(boundingBox.min.y)) {
+        boundingBox.min.y = 0;
+    }
+    if (isNull(boundingBox.max.z)) {
+        boundingBox.max.z = 0;
+    }
+    if (isNull(boundingBox.min.z)) {
+        boundingBox.min.z = 0;
+    }
+    if (isNull(boundingBox.max.b)) {
+        boundingBox.max.b = 0;
+    }
+    if (isNull(boundingBox.min.b)) {
+        boundingBox.min.b = 0;
+    }
 };
 
 export const generateGcode = (modelInfos, onProgress) => {
@@ -116,6 +147,8 @@ export const generateGcode = (modelInfos, onProgress) => {
             boundingBox.min.x = Math.min(boundingBox.min.x, toolPathObj.boundingBox.min.x);
             boundingBox.min.y = Math.min(boundingBox.min.y, toolPathObj.boundingBox.min.y);
         }
+
+        checkoutBoundingBoxIsNull(boundingBox);
 
         onProgress((i + 1) / modelInfos.length);
     }

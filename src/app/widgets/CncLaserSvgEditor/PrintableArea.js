@@ -212,8 +212,8 @@ class PrintableArea {
                 width: x,
                 height: y,
                 fill: '#FFFFFF',
-                stroke: '#FFFFFF',
-                'stroke-width': 0,
+                stroke: '#000',
+                'stroke-width': 1 / this.scale,
                 opacity: 1
             }
         });
@@ -225,8 +225,9 @@ class PrintableArea {
                 y: this.size.y - y,
                 width: x,
                 height: Math.min(fixtureLength, y),
-                fill: '#FFFBFB',
-                'stroke-width': 0,
+                fill: '#ffec58',
+                stroke: '#000',
+                'stroke-width': 1 / this.scale,
                 opacity: 1
             }
         });

@@ -3,6 +3,7 @@ import EventEmitter from 'events';
 // import GcodeParser from './GcodeParser';
 import Normalizer from './Normalizer';
 import ToolPath from '../ToolPath';
+import { round } from '../../../shared/lib/utils';
 
 const OVERLAP_RATE = 0.5;
 const MAX_DENSITY = 20;
@@ -10,7 +11,6 @@ const MAX_DENSITY = 20;
 export default class CncReliefToolPathGenerator extends EventEmitter {
     constructor(modelInfo, modelPath) {
         super();
-        // const { config, transformation, gcodeConfigPlaceholder } = modelInfo;
         const { config, transformation, gcodeConfig, isRotate, diameter } = modelInfo;
         const { toolDiameter, toolAngle, targetDepth, stepDown, density, isModel = false } = gcodeConfig;
 
@@ -21,8 +21,12 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
 
         this.gcodeConfig = gcodeConfig;
 
+        this.isRotate = isRotate;
+        this.diameter = diameter;
+        this.isModel = isModel;
+
         this.initialZ = isRotate ? diameter / 2 : 0;
-        this.targetDepth = targetDepth;
+        this.targetDepth = this.isModel ? diameter / 2 : targetDepth;
         this.finalDepth = this.initialZ - this.targetDepth;
         this.stepDown = stepDown;
 
@@ -35,10 +39,6 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
         this.invert = invert;
 
         this.toolSlope = Math.tan(toolAngle / 2 * Math.PI / 180);
-
-        this.isRotate = isRotate;
-        this.diameter = diameter;
-        this.isModel = isModel;
 
         const targetWidth = Math.round(transformation.width * this.density);
         const targetHeight = Math.round(transformation.height * this.density);
@@ -95,7 +95,8 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
                         const x = Math.floor(i / this.targetWidth * img.bitmap.width);
                         const y = Math.floor(j / this.targetHeight * img.bitmap.height);
                         const idx = y * img.bitmap.width * 4 + x * 4;
-                        data[i][j] = img.bitmap.data[idx];
+                        const a = img.bitmap.data[idx + 3];
+                        data[i][j] = a === 255 ? img.bitmap.data[idx] : 0;
                     }
                 }
 
@@ -156,9 +157,12 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
         if (this.isRotate && this.isModel) {
             const modelRadius = this.modelDiameter / 2;
             const d = this.diameter / 2 - modelRadius;
-            return this.initialZ - d + Math.round(-pixel * modelRadius / 255 * 100) / 100;
+            return this.initialZ - d - Math.round((255 - pixel) * modelRadius / 255 * 100) / 100;
+        } else if (this.isRotate) {
+            const targetDepth = Math.min(this.targetDepth, this.diameter / 2);
+            return this.initialZ - Math.round((255 - pixel) * targetDepth / 255 * 100) / 100;
         } else {
-            return this.initialZ + Math.round(-pixel * this.targetDepth / 255 * 100) / 100;
+            return this.initialZ - Math.round((255 - pixel) * this.targetDepth / 255 * 100) / 100;
         }
     }
 
@@ -176,14 +180,15 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
                 const x = normalizer.x(i);
                 const z = i >= this.targetWidth ? this.diameter / 2 : this._calculateThePrintZ(data[i][j]);
                 const b = this.toolPath.toB(x) / 180 * Math.PI;
-                const px = z * Math.sin(b);
-                const py = z * Math.cos(b);
+                const px = round(z * Math.sin(b), 2);
+                const py = round(z * Math.cos(b), 2);
                 if (path[index] === undefined) {
-                    path[index] = { x: px, y: py };
+                    path[index] = { x: px, y: py, z: z };
                 } else {
-                    if (px < path[index].px) {
+                    if (z < path[index].z) {
                         path[index].px = px;
                         path[index].py = px;
+                        path[index].z = z;
                     }
                 }
             }

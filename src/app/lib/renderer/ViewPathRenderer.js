@@ -54,7 +54,7 @@ export class ViewPathRenderer {
         geometry.computeFaceNormals();
         geometry.computeVertexNormals();
 
-        const mesh = new THREE.Mesh(geometry, new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
+        const mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: '#fee5c6' }));
 
         if (viewPath.positionX) {
             mesh.position.x = viewPath.positionX;
@@ -92,12 +92,12 @@ export class ViewPathRenderer {
     _generateBackground(viewPaths, size) {
         const group = new THREE.Group();
         if (viewPaths.isRotate) {
-            let start = -size.y;
+            let start = 0;
             const holes = viewPaths.holes;
             for (const hole of holes) {
                 if (hole.min > start) {
                     const geometry = new THREE.CylinderGeometry(viewPaths.diameter / 2, viewPaths.diameter / 2, hole.min - start, 32);
-                    const material = new THREE.MeshNormalMaterial();
+                    const material = new THREE.MeshPhongMaterial({ color: '#fee5c6' });
                     const mesh = new THREE.Mesh(geometry, material);
                     mesh.position.y = (hole.min + start) / 2;
                     group.add(mesh);
@@ -106,7 +106,7 @@ export class ViewPathRenderer {
             }
             if (size.y > start) {
                 const geometry = new THREE.CylinderGeometry(viewPaths.diameter / 2, viewPaths.diameter / 2, size.y - start, 32);
-                const material = new THREE.MeshNormalMaterial();
+                const material = new THREE.MeshPhongMaterial({ color: '#fee5c6' });
                 const mesh = new THREE.Mesh(geometry, material);
                 mesh.position.y = (size.y + start) / 2;
                 group.add(mesh);
@@ -144,7 +144,7 @@ export class ViewPathRenderer {
             bevelEnabled: false
         });
         // eslint-disable-next-line no-unused-vars
-        const material = new THREE.MeshNormalMaterial();
+        const material = new THREE.MeshPhongMaterial({ color: '#fee5c6' });
         return new THREE.Mesh(geometry, material);
     }
 }

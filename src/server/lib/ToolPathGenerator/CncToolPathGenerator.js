@@ -196,11 +196,15 @@ export default class CNCToolPathGenerator extends EventEmitter {
         const { isRotate, diameter, gcodeConfig } = modelInfo;
         const radius = diameter / 2;
         const {
-            targetDepth, stepDown,
+            stepDown,
             enableTab = false, tabWidth, tabHeight, tabSpace,
             jogSpeed, workSpeed, plungeSpeed
         } = gcodeConfig;
-        let { safetyHeight, stopHeight } = gcodeConfig;
+        let { targetDepth, safetyHeight, stopHeight } = gcodeConfig;
+
+        if (isRotate) {
+            targetDepth = Math.min(targetDepth, diameter);
+        }
 
         const normalizer = new Normalizer(
             'Center',

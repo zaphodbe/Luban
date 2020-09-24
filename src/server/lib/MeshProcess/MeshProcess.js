@@ -1,7 +1,7 @@
 import Jimp from 'jimp';
 import { Mesh } from './Mesh';
 import { Vector2 } from '../math/Vector2';
-import { PLANE_XY } from '../../constants';
+import { CNC_IMAGE_NEGATIVE_RANGE_FIELD, PLANE_XY } from '../../constants';
 import { pathWithRandomSuffix } from '../../../shared/lib/random-utils';
 import DataStorage from '../../DataStorage';
 import { isZero } from '../../../shared/lib/utils';
@@ -77,7 +77,8 @@ const getPointByLineAndAngle = (start, end, angle) => {
 
 export class MeshProcess {
     constructor(modelInfo) {
-        const { uploadName, config = {}, isRotate, diameter } = modelInfo;
+        // eslint-disable-next-line no-unused-vars
+        const { uploadName, config = {}, isRotate, diameter, transformation = {} } = modelInfo;
         const { plane = PLANE_XY, minGray = 0, maxGray = 255,
             sliceDensity = 5, extensionX = 0, extensionY = 0 } = config;
 
@@ -92,7 +93,7 @@ export class MeshProcess {
         this.isRotate = isRotate;
         this.diameter = diameter;
 
-        this.outputFilename = pathWithRandomSuffix(this.uploadName).replace('.stl', '.jpg');
+        this.outputFilename = pathWithRandomSuffix(this.uploadName).replace('.stl', '.png');
 
         this.mesh = Mesh.loadSTLFile(`${DataStorage.tmpDir}/${uploadName}`, this.plane);
         if (!this.mesh) {
@@ -180,8 +181,7 @@ export class MeshProcess {
                         const ii = i - this.extensionX;
                         const jj = j - this.extensionY;
                         const idx = jj * width * 4 + ii * 4;
-                        let d = data[ii] && data[ii][jj] ? data[ii][jj] / maxZ * grayRange + this.minGray : 0;
-                        d = 255 - d;
+                        const d = data[ii] && data[ii][jj] ? data[ii][jj] / maxZ * grayRange + this.minGray : 0;
 
                         image.bitmap.data[idx] = d;
                         image.bitmap.data[idx + 1] = d;
@@ -216,7 +216,7 @@ export class MeshProcess {
 
         const data = [];
         const r = Vector2.length({ x: mesh.aabb.length.x / 2, y: mesh.aabb.length.y / 2 });
-        const width = Math.ceil(r * 2 * Math.PI * this.sliceDensity);
+        const width = Math.ceil(r * Math.PI * this.sliceDensity) * 2;
         // const width = 360;
         const sliceAngle = 360 / width;
 
@@ -247,11 +247,18 @@ export class MeshProcess {
                             data[i][hj] = [];
                         }
 
+                        const l = Vector2.length(p);
+
                         if (!data[i][hj][0]) {
-                            data[i][hj][0] = (Vector2.length(p));
+                            data[i][hj][0] = l;
                         }
 
-                        data[i][hj][0] = Math.max(Vector2.length(p), data[i][hj][0]);
+                        if (!data[i][hj][1]) {
+                            data[i][hj][1] = l;
+                        }
+
+                        data[i][hj][0] = Math.max(l, data[i][hj][0]);
+                        data[i][hj][1] = Math.min(l, data[i][hj][1]);
                     }
                 }
             }
@@ -265,13 +272,21 @@ export class MeshProcess {
                 for (let i = 0; i < width; i++) {
                     for (let j = 0; j < height; j++) {
                         const idx = j * width * 4 + i * 4;
-                        let d = data[j][i] ? data[j][i][0] / maxR * 255 : 0;
-                        d = 255 - d;
+                        // const d = data[j][i] ? data[j][i][0] / maxR * 255 : 0;
+                        let d = 0;
+                        let a = 255;
+                        const k = (i + width / 2) % width;
+                        if (data[j][i]) {
+                            d = data[j][i][0] / maxR * 255;
+                        } else if (data[j][k] && data[j][k][1] < data[j][k][0]) {
+                            d = data[j][k][1] / maxR * 255;
+                            a = CNC_IMAGE_NEGATIVE_RANGE_FIELD;
+                        }
 
                         image.bitmap.data[idx] = d;
                         image.bitmap.data[idx + 1] = d;
                         image.bitmap.data[idx + 2] = d;
-                        image.bitmap.data[idx + 3] = 255;
+                        image.bitmap.data[idx + 3] = a;
                     }
                 }
                 image.write(`${DataStorage.tmpDir}/${this.outputFilename}`, () => {

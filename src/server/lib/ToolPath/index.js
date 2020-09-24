@@ -70,7 +70,7 @@ class ToolPath {
     setMove1F(f) {
         const rapidMoveRate = this.setRapidMoveRate(f);
         if (rapidMoveRate) {
-            this.commands.push({ 'G': 0, F: rapidMoveRate });
+            this.commands.push({ 'G': 1, F: rapidMoveRate });
         }
     }
 

@@ -820,7 +820,9 @@ export const actions = {
 
 
     onReceiveViewPathTaskResult: (headType, taskResult) => async (dispatch, getState) => {
+        const { size } = getState().machine;
         const { toolPathModelGroup, materials } = getState()[headType];
+        const { isRotate } = materials;
 
         if (taskResult.taskStatus === 'failed') {
             dispatch(baseActions.updateState(headType, {
@@ -830,7 +832,7 @@ export const actions = {
             return;
         }
         const { viewPathFile } = taskResult;
-        toolPathModelGroup.receiveViewPathTaskResult(viewPathFile, materials).then(() => {
+        toolPathModelGroup.receiveViewPathTaskResult(viewPathFile, isRotate ? materials : size).then(() => {
             dispatch(baseActions.render(headType));
         });
     },

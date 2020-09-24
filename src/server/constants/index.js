@@ -55,3 +55,7 @@ export const SOURCE_TYPE_IMAGE3D = 'image3d';
 export const PROCESS_MODE_BW = 'bw';
 export const PROCESS_MODE_VECTOR = 'vector';
 export const PROCESS_MODE_GREYSCALE = 'greyscale';
+
+// Use a special a value to expand the range of pixels in the picture
+// 255 -> 0 => 255 ->0 -> -255
+export const CNC_IMAGE_NEGATIVE_RANGE_FIELD = 254;

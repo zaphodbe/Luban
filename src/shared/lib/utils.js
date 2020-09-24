@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 export const EPSILON = 1e-6;
 
 export const isZero = (x) => {
@@ -16,6 +18,10 @@ export const round = (d, n) => {
     } else {
         return parseFloat(d.toFixed(n));
     }
+};
+
+export const isNull = (d) => {
+    return _.isNull(d) || _.isUndefined(d);
 };
 
 export default {
