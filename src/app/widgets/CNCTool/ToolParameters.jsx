@@ -1,8 +1,9 @@
 import React, { PureComponent } from 'react';
-import { noop, includes } from 'lodash';
+import _ from 'lodash';
 import { connect } from 'react-redux';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
+import Anchor from '../../components/Anchor';
 import {
     CNC_TOOL_SNAP_V_BIT,
     CNC_TOOL_SNAP_V_BIT_CONFIG,
@@ -11,7 +12,7 @@ import {
     CNC_TOOL_SNAP_BALL_END_MILL,
     CNC_TOOL_SNAP_BALL_END_MILL_CONFIG,
     CNC_TOOL_CUSTOM,
-    CNC_TOOL_CUSTOM_CONFIG, PAGE_PROCESS
+    CNC_TOOL_CUSTOM_CONFIG, PAGE_PROCESS, CNC_TOOL_SNAP_S_F_S, CNC_TOOL_SNAP_S_F_S_CONFIG
 } from '../../constants';
 import i18n from '../../lib/i18n';
 import { NumberInput as Input } from '../../components/Input';
@@ -40,13 +41,14 @@ class ToolParameters extends PureComponent {
 
     actions = {
         onChangeTool: (tool) => {
-            if (!includes([CNC_TOOL_SNAP_V_BIT, CNC_TOOL_SNAP_FLAT_END_MILL, CNC_TOOL_SNAP_BALL_END_MILL, CNC_TOOL_CUSTOM], tool)) {
+            if (!_.includes([CNC_TOOL_SNAP_V_BIT, CNC_TOOL_SNAP_FLAT_END_MILL, CNC_TOOL_SNAP_BALL_END_MILL, CNC_TOOL_SNAP_S_F_S, CNC_TOOL_CUSTOM], tool)) {
                 return;
             }
             const map = {
                 [CNC_TOOL_SNAP_V_BIT]: CNC_TOOL_SNAP_V_BIT_CONFIG,
                 [CNC_TOOL_SNAP_FLAT_END_MILL]: CNC_TOOL_SNAP_FLAT_END_MILL_CONFIG,
                 [CNC_TOOL_SNAP_BALL_END_MILL]: CNC_TOOL_SNAP_BALL_END_MILL_CONFIG,
+                [CNC_TOOL_SNAP_S_F_S]: CNC_TOOL_SNAP_S_F_S_CONFIG,
                 [CNC_TOOL_CUSTOM]: CNC_TOOL_CUSTOM_CONFIG
             };
             const config = map[tool];
@@ -93,7 +95,7 @@ class ToolParameters extends PureComponent {
                         <div
                             className={classNames(styles.selectToolBtn, { [styles.selected]: state.tool === CNC_TOOL_SNAP_V_BIT })}
                             onClick={() => actions.onChangeTool(CNC_TOOL_SNAP_V_BIT)}
-                            onKeyDown={noop}
+                            onKeyDown={_.noop}
                             role="button"
                             tabIndex={0}
                         >
@@ -110,7 +112,7 @@ class ToolParameters extends PureComponent {
                         <div
                             className={classNames(styles.selectToolBtn, { [styles.selected]: state.tool === CNC_TOOL_SNAP_FLAT_END_MILL })}
                             onClick={() => actions.onChangeTool(CNC_TOOL_SNAP_FLAT_END_MILL)}
-                            onKeyDown={noop}
+                            onKeyDown={_.noop}
                             role="button"
                             tabIndex={0}
                         >
@@ -127,7 +129,7 @@ class ToolParameters extends PureComponent {
                         <div
                             className={classNames(styles.selectToolBtn, { [styles.selected]: state.tool === CNC_TOOL_SNAP_BALL_END_MILL })}
                             onClick={() => actions.onChangeTool(CNC_TOOL_SNAP_BALL_END_MILL)}
-                            onKeyDown={noop}
+                            onKeyDown={_.noop}
                             role="button"
                             tabIndex={0}
                         >
@@ -140,6 +142,20 @@ class ToolParameters extends PureComponent {
                         </div>
                         <span className={styles['select-tool-text']}>{i18n._('Ball End Mill')}</span>
                     </div>
+                    <div className={styles['select-tool']}>
+                        <Anchor
+                            className={classNames(styles.selectToolBtn, { [styles.selected]: state.tool === CNC_TOOL_SNAP_S_F_S })}
+                            onClick={() => actions.onChangeTool(CNC_TOOL_SNAP_S_F_S)}
+                        >
+                            <img
+                                src="images/cnc/cnc-tool-ball-end-mill-88x88.png"
+                                role="presentation"
+                                alt="Straight Flute V-Bit"
+                            />
+                        </Anchor>
+                        <span className={styles['select-tool-text']}>{i18n._('Straight Flute V-Bit')}</span>
+                    </div>
+
                 </div>
 
                 <OptionalDropdown
@@ -156,9 +172,10 @@ class ToolParameters extends PureComponent {
                                 </p>
                                 <p>{i18n._('For the carving bits that we provide, please enter the following value:')}</p>
                                 <ul>
-                                    <li><b>{i18n._('Carving V-Bit')}</b>: 0.1 mm</li>
+                                    <li><b>{i18n._('Carving V-Bit')}</b>: 0.2 mm</li>
                                     <li><b>{i18n._('Ball End Mill')}</b>: 3.175 mm</li>
                                     <li><b>{i18n._('Flat End Mill')}</b>: 1.5 mm</li>
+                                    <li><b>{i18n._('Straight Flute V-Bit')}</b>: 0.3 mm</li>
                                 </ul>
                             </div>
                         )}
@@ -186,6 +203,7 @@ class ToolParameters extends PureComponent {
                                     <li><b>{i18n._('Carving V-bit')}</b>: 30°</li>
                                     <li><b>{i18n._('Ball End Mill')}</b>: 180°</li>
                                     <li><b>{i18n._('Flat End Mill')}</b>: 180°</li>
+                                    <li><b>{i18n._('Straight Flute V-Bit')}</b>: 20°</li>
                                 </ul>
                             </div>
                         )}
@@ -212,7 +230,8 @@ class ToolParameters extends PureComponent {
                                 <p>{i18n._('For the carving bits that we provide, please enter the following value:')}</p>
                                 <ul>
                                     <li><b>{i18n._('Carving V-Bit')}</b>: 3.175 mm</li>
-                                    <li><b>{i18n._('Ball End Mill')}</b>: 3.175 mm</li>
+                                    <li><b>{i18n._('Ball End Mill')}</b>: 1.5 mm</li>
+                                    <li><b>{i18n._('Flat End Mill')}</b>: 3.175 mm</li>
                                     <li><b>{i18n._('Flat End Mill')}</b>: 3.175 mm</li>
                                 </ul>
                             </div>

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 // import { DATA_PREFIX, EPSILON } from '../../constants';
-import { DATA_PREFIX, MACHINE_SERIES, PAGE_EDITOR } from '../../constants';
+import { DATA_PREFIX, PAGE_EDITOR } from '../../constants';
 import { controller } from '../../lib/controller';
 import ModelGroup from '../../models/ModelGroup';
 import SVGActionsFactory from '../../models/SVGActionsFactory';
@@ -22,8 +22,8 @@ const INITIAL_STATE = {
 
     materials: {
         isRotate: false,
-        diameter: 24,
-        length: MACHINE_SERIES.ORIGINAL.setting.size.y,
+        diameter: 40,
+        length: 70,
         fixtureLength: 20,
         isCW: true,
         x: 0,

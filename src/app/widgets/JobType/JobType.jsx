@@ -1,8 +1,10 @@
 import React, { PureComponent } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 import i18n from '../../lib/i18n';
-import Anchor from '../../components/Anchor';
+import { toFixed } from '../../lib/numeric-utils';
+import styles from './styles.styl';
 import { actions as editorActions } from '../../flux/editor';
 import { PAGE_EDITOR } from '../../constants';
 import { NumberInput as Input } from '../../components/Input';
@@ -42,84 +44,93 @@ class JobType extends PureComponent {
 
         return (
             <React.Fragment>
-                <div className="container-fluid">
-                    <div className="row">
-                        <Anchor className="col-6" onClick={() => { this.props.updateMaterials({ isRotate: false }); }}>
-                            <div>
-                                <i
-                                    style={{
-                                        marginRight: '8px'
-                                    }}
-                                    className={isRotate ? 'fa fa-circle-o' : 'fa fa-dot-circle-o'}
-                                    aria-hidden="true"
-                                />
-                                <span>3 Axis CNC</span>
-                            </div>
-                            <img
-                                style={{
-                                    margin: '8px 0px 0px 0px'
-                                }}
-                                width="130px"
-                                src="images/cnc/cnc-3th-2x.png"
-                                role="presentation"
-                                alt="3 Axis CNC"
-                            />
-                        </Anchor>
-                        <Anchor className="col-6" onClick={() => { this.props.updateMaterials({ isRotate: true }); }}>
-                            <div>
-                                <i
-                                    style={{
-                                        marginRight: '8px'
-                                    }}
-                                    className={isRotate ? 'fa fa-dot-circle-o' : 'fa fa-circle-o'}
-                                    aria-hidden="true"
-                                />
-                                <span>4 Axis CNC</span>
-                            </div>
-                            <img
-                                style={{
-                                    margin: '8px 0px 0px 0px'
-                                }}
-                                width="130px"
-                                src="images/cnc/cnc-4th-2x.png"
-                                role="presentation"
-                                alt="4 Axis CNC"
-                            />
-                        </Anchor>
+                <div className="">
+                    <div className="sm-tabs" style={{ marginBottom: '1rem' }}>
+                        <button
+                            type="button"
+                            style={{ width: '50%' }}
+                            className={classNames('sm-tab', { 'sm-selected': !isRotate })}
+                            onClick={() => {
+                                this.props.updateMaterials({ isRotate: false });
+                            }}
+                        >
+                            {i18n._('3 Axis CNC')}
+                        </button>
+                        <button
+                            type="button"
+                            style={{ width: '50%' }}
+                            className={classNames('sm-tab', { 'sm-selected': isRotate })}
+                            onClick={() => {
+                                this.props.updateMaterials({ isRotate: true });
+                            }}
+                        >
+                            {i18n._('4 Axis CNC')}
+                        </button>
                     </div>
                 </div>
+                {!isRotate && (
+                    <img
+                        style={{
+                            margin: '8px 0px 0px 0px',
+                            width: '100%',
+                            maxWidth: '326px'
+                        }}
+                        src="images/cnc/cnc-3th-2x.png"
+                        role="presentation"
+                        alt="3 Axis CNC"
+                    />
+                )}
                 {isRotate && (
-                    <div style={{
-                        marginTop: '16px',
-                        padding: '0px 15px 0px 15px'
-                    }}
-                    >
-                        <div className="sm-parameter-row">
-                            <span className="sm-parameter-row__label">{i18n._('Diameter')}</span>
-                            <Input
-                                disabled={false}
-                                className="sm-parameter-row__input"
-                                value={diameter}
-                                max={size.x}
-                                min={0.1}
-                                onChange={(value) => { this.props.updateMaterials({ diameter: value }); }}
-                            />
-                            <span className="sm-parameter-row__input-unit">mm</span>
-                        </div>
-                        <div className="sm-parameter-row">
-                            <span className="sm-parameter-row__label">{i18n._('Length')}</span>
-                            <Input
-                                disabled={false}
-                                className="sm-parameter-row__input"
-                                value={length}
-                                max={size.y}
-                                min={0.1}
-                                onChange={(value) => { this.props.updateMaterials({ length: value }); }}
-                            />
-                            <span className="sm-parameter-row__input-unit">mm</span>
+                    <div>
+                        <img
+                            style={{
+                                margin: '8px 0px 0px 0px',
+                                width: '100%',
+                                maxWidth: '326px'
+                            }}
+                            src="images/cnc/cnc-4th-2x.png"
+                            role="presentation"
+                            alt="4 Axis CNC"
+                        />
+                        <div style={{
+                            marginTop: '16px',
+                            padding: '0px 15px 0px 15px'
+                        }}
+                        >
+                            <div className="sm-parameter-row">
+                                <span className="sm-parameter-row__label">{i18n._('Length (mm)')}</span>
+                                <Input
+                                    disabled={false}
+                                    className={styles['input-box-left']}
+                                    value={toFixed(length, 2)}
+                                    max={size.y}
+                                    min={0.1}
+                                    onChange={(value) => { this.props.updateMaterials({ length: value }); }}
+                                />
+                                <span
+                                    className={styles['input-box-inner-text']}
+                                >
+                                    L
+                                </span>
+                            </div>
+                            <div className="sm-parameter-row">
+                                <span className="sm-parameter-row__label">{i18n._('Diameter (mm)')}</span>
+                                <Input
+                                    disabled={false}
+                                    className={styles['input-box-left']}
+                                    value={toFixed(diameter, 2)}
+                                    max={size.x}
+                                    min={0.1}
+                                    onChange={(value) => { this.props.updateMaterials({ diameter: value }); }}
+                                />
+                                <span
+                                    className={styles['input-box-inner-text']}
+                                >
+                                    D
+                                </span>
+                            </div>
                         </div>
                     </div>
-
                 )}
             </React.Fragment>
         );

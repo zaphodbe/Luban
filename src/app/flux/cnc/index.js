@@ -9,7 +9,7 @@ import {
     ACTION_UPDATE_TRANSFORMATION
 } from '../actionType';
 import { actions as editorActions, CNC_LASER_STAGE } from '../editor';
-import { PAGE_EDITOR, CNC_TOOL_SNAP_V_BIT_CONFIG, MACHINE_SERIES } from '../../constants';
+import { PAGE_EDITOR, CNC_TOOL_SNAP_V_BIT_CONFIG } from '../../constants';
 
 const ACTION_CHANGE_TOOL_PARAMS = 'cnc/ACTION_CHANGE_TOOL_PARAMS';
 
@@ -18,8 +18,8 @@ const INITIAL_STATE = {
 
     materials: {
         isRotate: false,
-        diameter: 24,
-        length: MACHINE_SERIES.ORIGINAL.setting.size.y,
+        diameter: 35,
+        length: 75,
         fixtureLength: 20,
         isCW: true,
         x: 0,

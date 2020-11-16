@@ -62,7 +62,9 @@ export default class CncMeshToolPathGenerator extends EventEmitter {
             const res = await meshProcess.convertTo3AxisImage();
             const modelInfo = {
                 ...this.modelInfo,
-                isRotate: false,
+                materials: {
+                    isRotate: false
+                },
                 transformation: {
                     ...this.modelInfo.transformation,
                     width: res.width,

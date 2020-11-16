@@ -109,27 +109,31 @@ class GcodeToBufferGeometryWorkspace {
                         indexs.push(indexCount);
                     }
 
-                    if (motion === 'G1' && (v1.x !== v2.x || v1.y !== v2.y || v1.z !== v2.z)) {
+                    if (motion === 'G1' && (v1.x !== v2.x || v1.y !== v2.y || v1.z !== v2.z || v1.b !== v2.b)) {
                         if (boundingBox === null) {
                             boundingBox = {
                                 max: {
                                     x: v2.x,
                                     y: v2.y,
-                                    z: v2.z
+                                    z: v2.z,
+                                    b: v2.b
                                 },
                                 min: {
                                     x: v1.x,
                                     y: v1.y,
-                                    z: v1.z
+                                    z: v1.z,
+                                    b: v1.b
                                 }
                             };
                         } else {
                             boundingBox.max.x = Math.max(boundingBox.max.x, v2.x);
                             boundingBox.max.y = Math.max(boundingBox.max.y, v2.y);
                             boundingBox.max.z = Math.max(boundingBox.max.z, v2.z);
+                            boundingBox.max.b = Math.max(boundingBox.max.b, v2.b);
                             boundingBox.min.x = Math.min(boundingBox.min.x, v2.x);
                             boundingBox.min.y = Math.min(boundingBox.min.y, v2.y);
                             boundingBox.min.z = Math.min(boundingBox.min.z, v2.z);
+                            boundingBox.min.b = Math.min(boundingBox.min.b, v2.b);
                         }
                     }
                 },
@@ -248,6 +252,24 @@ class GcodeToBufferGeometryWorkspace {
             bufferGeometry.addAttribute('a_color', colorAttribute);
             bufferGeometry.addAttribute('a_index_color', indexColorAttribute);
             bufferGeometry.addAttribute('a_index', indexAttribute);
+
+            if (boundingBox === null) {
+                boundingBox = {
+                    max: {
+                        x: 0,
+                        y: 0,
+                        z: 0,
+                        b: 0
+                    },
+                    min: {
+                        x: 0,
+                        y: 0,
+                        z: 0,
+                        b: 0
+                    }
+                };
+            }
+
             onParsed({
                 bufferGeometry: bufferGeometry,
                 renderMethod: renderMethodTmp,

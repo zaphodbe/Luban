@@ -226,7 +226,7 @@ class PrintableArea {
                 y: this.size.y - y,
                 width: x,
                 height: Math.min(fixtureLength, y),
-                fill: '#ffec58',
+                fill: '#FFE7E7',
                 stroke: '#000',
                 'stroke-width': 1 / this.scale,
                 opacity: 1
