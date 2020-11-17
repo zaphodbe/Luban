@@ -3,7 +3,8 @@ import { Vector2 } from '../../../shared/lib/math/Vector2';
 
 const UNIFORMS = {
     // rgba
-    u_g1_color: new THREE.Uniform(new THREE.Vector4(0, 0, 0, 1))
+    u_g1_color: new THREE.Uniform(new THREE.Vector4(0, 0, 0, 1)),
+    u_select_color: new THREE.Uniform(new THREE.Vector4(0, 0, 0.9, 1))
 };
 
 const CNC_LASER_VERT_SHADER = [
@@ -26,6 +27,34 @@ const CNC_LASER_FRAG_SHADER = [
     '}'
 ].join('');
 
+const CNC_LASER_FRAG_SELECT_SHADER = [
+    'uniform vec4 u_select_color;',
+    'varying float v_g_code;',
+    'void main(){',
+    '    if(v_g_code == 0.0){',
+    '        discard;',
+    '    }',
+    '    gl_FragColor = u_select_color;',
+    '}'
+].join('');
+
+export const materialUnselected = new THREE.ShaderMaterial({
+    uniforms: UNIFORMS,
+    vertexShader: CNC_LASER_VERT_SHADER,
+    fragmentShader: CNC_LASER_FRAG_SHADER,
+    side: THREE.DoubleSide,
+    transparent: true,
+    linewidth: 1
+});
+export const materialSelected = new THREE.ShaderMaterial({
+    uniforms: UNIFORMS,
+    vertexShader: CNC_LASER_VERT_SHADER,
+    fragmentShader: CNC_LASER_FRAG_SELECT_SHADER,
+    side: THREE.DoubleSide,
+    transparent: true,
+    linewidth: 1
+});
+
 const motionColor = {
     'G0': new THREE.Color(0xc8c8c8),
     'G1': new THREE.Color(0x000000),
@@ -38,7 +67,7 @@ class ToolPathRenderer {
     }
 
     render() {
-        const { headType, mode, movementMode, data, isRotate } = this.toolPath;
+        const { headType, mode, movementMode, data, isRotate, isSelected } = this.toolPath;
 
         // now only support cnc&laser
         if (!['cnc', 'laser'].includes(headType)) {
@@ -47,12 +76,12 @@ class ToolPathRenderer {
         let obj;
         if (headType === 'laser') {
             if (mode === 'greyscale' && movementMode === 'greyscale-dot') {
-                obj = this.parseToPoints(data);
+                obj = this.parseToPoints(data, isSelected);
             } else {
-                obj = this.parseToLine(data, isRotate);
+                obj = this.parseToLine(data, isRotate, isSelected);
             }
         } else {
-            obj = this.parseToLine(data, isRotate);
+            obj = this.parseToLine(data, isRotate, isSelected);
         }
         obj.position.set(isRotate ? 0 : this.toolPath.positionX, this.toolPath.positionY, 0);
         if (this.toolPath.rotationB) {
@@ -62,7 +91,7 @@ class ToolPathRenderer {
         return obj;
     }
 
-    parseToLine(data, isRotate) {
+    parseToLine(data, isRotate, isSelected) {
         const positions = [];
         const gCodes = [];
 
@@ -128,14 +157,15 @@ class ToolPathRenderer {
         const gCodeAttribute = new THREE.Float32BufferAttribute(gCodes, 1);
         bufferGeometry.addAttribute('position', positionAttribute);
         bufferGeometry.addAttribute('a_g_code', gCodeAttribute);
-        const material = new THREE.ShaderMaterial({
-            uniforms: UNIFORMS,
-            vertexShader: CNC_LASER_VERT_SHADER,
-            fragmentShader: CNC_LASER_FRAG_SHADER,
-            side: THREE.DoubleSide,
-            transparent: true,
-            linewidth: 1
-        });
+        let material;
+
+        console.log('is', isSelected);
+
+        if (isSelected) {
+            material = materialSelected;
+        } else {
+            material = materialUnselected;
+        }
         return new THREE.Line(bufferGeometry, material);
     }
 

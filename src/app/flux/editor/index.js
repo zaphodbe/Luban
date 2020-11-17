@@ -65,7 +65,7 @@ export const actions = {
         const { SVGActions } = getState()[headType];
 
         SVGActions.setModelTransformCallback(() => {
-            dispatch(actions.processSelectedModel(headType));
+            // dispatch(actions.processSelectedModel(headType));
             dispatch(actions.showAllModelsObj3D(headType));
         });
 
@@ -296,6 +296,8 @@ export const actions = {
 
         dispatch(actions.clearSelection(headType));
 
+        toolPathModelGroup.selectToolPathModel();
+
         if (intersect) {
             const model = modelGroup.getSelectedModelByIntersect(intersect);
             if (model) {
@@ -430,7 +432,7 @@ export const actions = {
             config: {
                 ...selectedModel.config
             },
-            isRotate: materials.isRotate
+            materials: materials
         };
 
         api.processImage(options)
@@ -441,6 +443,21 @@ export const actions = {
                 }
 
                 const svgModel = selectedModel.relatedModels.svgModel;
+
+                if (selectedModel.sourceType === 'image3d') {
+                    const modelOptions = {
+                        sourceWidth: res.body.width * DEFAULT_SCALE,
+                        sourceHeight: res.body.height * DEFAULT_SCALE,
+                        width: res.body.width,
+                        height: res.body.height,
+                        transformation: {
+                            width: Math.abs(res.body.width * selectedModel.transformation.scaleX),
+                            height: Math.abs(res.body.height * selectedModel.transformation.scaleY)
+                        }
+                    };
+                    selectedModel.updateAndRefresh(modelOptions);
+                    SVGActions.resetSelection();
+                }
 
                 // modelGroup.updateSelectedModelProcessImage(processImageName);
                 selectedModel.updateProcessImageName(processImageName);
@@ -784,14 +801,14 @@ export const actions = {
             for (const model of modelGroup.getModels()) {
                 await model.preview({ materials });
             }
-        }
 
-        const isAllModelsPreviewed = checkIsAllModelsPreviewed(modelGroup, toolPathModelGroup);
-        if (isAllModelsPreviewed) {
-            dispatch(baseActions.updateState(headType, {
-                isAllModelsPreviewed: isAllModelsPreviewed
-            }));
-            dispatch(actions.showAllToolPathsObj3D(headType));
+            const isAllModelsPreviewed = checkIsAllModelsPreviewed(modelGroup, toolPathModelGroup);
+            if (isAllModelsPreviewed) {
+                dispatch(baseActions.updateState(headType, {
+                    isAllModelsPreviewed: isAllModelsPreviewed
+                }));
+                dispatch(actions.showAllToolPathsObj3D(headType));
+            }
         }
     },
 
@@ -1343,7 +1360,7 @@ export const actions = {
                 ...allMaterials
             }
         }));
-        // dispatch(actions.processAllMeshModel(headType));
+        dispatch(actions.processSelectedModel(headType));
         dispatch(actions.showAllModelsObj3D(headType));
     }
 };

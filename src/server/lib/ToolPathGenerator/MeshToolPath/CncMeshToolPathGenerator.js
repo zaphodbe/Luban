@@ -26,7 +26,7 @@ export default class CncMeshToolPathGenerator extends EventEmitter {
         this.isRotate = isRotate;
         this.diameter = diameter;
 
-        this.toolPath = new XToBToolPath({ isRotate, radius: diameter / 2 });
+        this.toolPath = new XToBToolPath({ isRotate, diameter: diameter });
 
         this.toolAngle = toolAngle;
     }
@@ -52,8 +52,8 @@ export default class CncMeshToolPathGenerator extends EventEmitter {
             z: this.transformation.height / height
         });
 
-        const parseToToolPath = async (face) => {
-            meshProcess.mesh.setCoordinateSystem(face);
+        const parseToToolPath = async (face, i) => {
+            meshProcess.mesh.setFace(face);
             meshProcess.mesh.offset({
                 x: -meshProcess.mesh.aabb.min.x,
                 y: -(meshProcess.mesh.aabb.min.y + meshProcess.mesh.aabb.max.y) / 2,
@@ -73,6 +73,9 @@ export default class CncMeshToolPathGenerator extends EventEmitter {
             };
             const modelPath = `${DataStorage.tmpDir}/${res.filename}`;
             const generator = new CncReliefToolPathGenerator(modelInfo, modelPath);
+            generator.on('progress', (p) => {
+                this.emit('progress', p * (i + 1) / 4);
+            });
             generator.initialZ = this.diameter / 2;
             generator.imageInitalZ = meshProcess.mesh.aabb.length.y / 2;
             generator.imageFinalZ = 0;
@@ -80,17 +83,15 @@ export default class CncMeshToolPathGenerator extends EventEmitter {
             return toolPath;
         };
 
-        const faces = [FACE_FRONT, FACE_RIGHT, FACE_BACK, FACE_LEFT];
+        const faces = [FACE_LEFT, FACE_FRONT, FACE_RIGHT, FACE_BACK];
 
         const { jogSpeed } = this.gcodeConfig;
 
         for (let i = 0; i < faces.length; i++) {
-            const toolPath = await parseToToolPath(faces[i]);
+            const toolPath = await parseToToolPath(faces[i], i);
+            this.toolPath.move0B(i * 90, jogSpeed);
             for (const command of toolPath.data) {
                 this.toolPath.setCommand(command);
-            }
-            if (i !== faces.length - 1) {
-                this.toolPath.move0B((i + 1) * 90, jogSpeed);
             }
         }
 

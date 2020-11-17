@@ -106,7 +106,8 @@ const writeSvg = (width, height, paths, outputFile, p = '') => {
 
 export class MeshProcess {
     constructor(modelInfo) {
-        const { uploadName, config = {}, isRotate, diameter, transformation = {} } = modelInfo;
+        const { uploadName, config = {}, transformation = {}, materials = {} } = modelInfo;
+        const { isRotate, diameter } = materials;
         const { face = FACE_FRONT, minGray = 0, maxGray = 255,
             sliceDensity = 5, extensionX = 0, extensionY = 0 } = config;
 
@@ -355,7 +356,7 @@ export class MeshProcess {
             });
             return this.convertTo4AxisImage();
         } else {
-            this.mesh.setCoordinateSystem(this.face);
+            this.mesh.setFace(this.face);
             this.mesh.offset({
                 x: -this.mesh.aabb.min.x,
                 y: -this.mesh.aabb.min.y,

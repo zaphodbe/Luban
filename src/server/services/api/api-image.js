@@ -60,7 +60,7 @@ export const set = (req, res) => {
 
                 next();
             } else if (path.extname(uploadName) === '.stl') {
-                const meshProcess = new MeshProcess({ uploadName, isRotate: isRotate === 'true' });
+                const meshProcess = new MeshProcess({ uploadName, materials: { isRotate: isRotate === 'true' } });
                 const { width, height } = meshProcess.getWidthAndHeight();
                 res.send({
                     originalName: originalName,

@@ -8,17 +8,20 @@ import Anchor from '../../components/Anchor';
 import { actions as textActions } from '../../flux/text';
 import TipTrigger from '../../components/TipTrigger';
 import { FACE_BACK, FACE_DOWN, FACE_FRONT, FACE_LEFT, FACE_RIGHT, FACE_UP } from '../../constants';
+import { actions as editorActions } from '../../flux/editor';
 
 class Image3dParameters extends PureComponent {
     static propTypes = {
         disabled: PropTypes.bool,
+        materials: PropTypes.object,
         config: PropTypes.shape({
             face: PropTypes.string,
             minGray: PropTypes.number,
             maxGray: PropTypes.number,
             sliceDensity: PropTypes.number
         }),
-        updateSelectedModelConfig: PropTypes.func.isRequired
+        updateSelectedModelConfig: PropTypes.func.isRequired,
+        processSelectedModel: PropTypes.func.isRequired
     };
 
     state = {
@@ -66,6 +69,7 @@ class Image3dParameters extends PureComponent {
             label: FACE_DOWN
         }];
         const actions = this.actions;
+        const { isRotate } = this.props.materials;
 
         return (
             <div>
@@ -80,7 +84,7 @@ class Image3dParameters extends PureComponent {
                     )}
                     />
                 </Anchor>
-                {this.state.expanded && (
+                {this.state.expanded && !isRotate && (
                     <React.Fragment>
                         <TipTrigger
                             title={i18n._('Face')}
@@ -96,7 +100,10 @@ class Image3dParameters extends PureComponent {
                                     searchable={false}
                                     options={faceOptions}
                                     value={face}
-                                    onChange={actions.onChangeFace}
+                                    onChange={(option) => {
+                                        actions.onChangeFace(option);
+                                        this.props.processSelectedModel();
+                                    }}
                                 />
                             </div>
                         </TipTrigger>
@@ -109,6 +116,7 @@ class Image3dParameters extends PureComponent {
 
 const mapStateToProps = (state) => {
     const { fonts } = state.text;
+    const { materials } = state.cnc;
     const fontOptions = fonts.map((font) => ({
         label: font.displayName,
         value: font.fontFamily
@@ -118,13 +126,15 @@ const mapStateToProps = (state) => {
         value: 'AddFonts'
     });
     return {
-        fontOptions
+        fontOptions,
+        materials
     };
 };
 
 const mapDispatchToProps = (dispatch) => {
     return {
-        uploadFont: (file) => dispatch(textActions.uploadFont(file))
+        uploadFont: (file) => dispatch(textActions.uploadFont(file)),
+        processSelectedModel: () => dispatch(editorActions.processSelectedModel('cnc'))
     };
 };
 

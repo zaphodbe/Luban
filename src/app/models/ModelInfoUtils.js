@@ -47,6 +47,11 @@ const checkParams = (headType, sourceType, mode) => {
     return true;
 };
 
+// eslint-disable-next-line no-unused-vars
+const toKey = (args) => {
+    return args.join('-');
+};
+
 const generateLaserDefaults = (mode, sourceType) => {
     let config = null;
     let gcodeConfig = null;

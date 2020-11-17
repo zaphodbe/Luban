@@ -81,11 +81,7 @@ class ToolPathModel {
         };
     }
 
-    generateToolPath3D(toolPath) {
-        this.toolPathObj3D = generateToolPathObject3D(toolPath);
-    }
-
-    loadToolPath(filename) {
+    loadToolPath(filename, isSelected) {
         this.toolPathFilename = filename;
         const toolPathFilePath = `${DATA_PREFIX}/${filename}`;
         return new Promise((resolve) => {
@@ -93,7 +89,8 @@ class ToolPathModel {
                 toolPathFilePath,
                 (data) => {
                     const toolPath = JSON.parse(data);
-                    this.generateToolPath3D(toolPath);
+                    toolPath.isSelected = isSelected;
+                    this.toolPathObj3D = generateToolPathObject3D(toolPath);
                     if (this.gcodeConfig.multiPassEnabled) {
                         this.estimatedTime = toolPath.estimatedTime * this.gcodeConfig.multiPasses;
                     } else {

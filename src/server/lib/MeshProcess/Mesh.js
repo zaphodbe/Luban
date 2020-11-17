@@ -195,8 +195,11 @@ export class Mesh {
         this.aabb.rotate(angle);
     }
 
-    setCoordinateSystem(face) {
-        const coordinates = surfaceOptions[face];
+    setFace(face) {
+        this.setCoordinateSystem(surfaceOptions[face]);
+    }
+
+    setCoordinateSystem(coordinates) {
         const nCoordinate = {
             ...this.coordinates,
             ...coordinates

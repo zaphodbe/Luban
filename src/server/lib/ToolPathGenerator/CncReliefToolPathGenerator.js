@@ -304,6 +304,8 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
             pathNegativeReordering(path);
 
             paths.push(path);
+
+            this.emit('progress', (j + 1) / this.targetHeight);
         }
 
         paths.push(paths[paths.length - 1]);
@@ -357,6 +359,8 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
                 path.push({ x: x, y: z });
             }
             paths.push(path);
+
+            this.emit('progress', (j + 1) / this.targetHeight);
         }
 
         const width = this.targetWidth / this.density;

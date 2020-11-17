@@ -9,6 +9,7 @@ import { actions as editorActions } from '../../flux/editor';
 import { PAGE_EDITOR } from '../../constants';
 import { NumberInput as Input } from '../../components/Input';
 
+
 class JobType extends PureComponent {
     static propTypes = {
         setTitle: PropTypes.func.isRequired,
@@ -75,7 +76,7 @@ class JobType extends PureComponent {
                             width: '100%',
                             maxWidth: '326px'
                         }}
-                        src="images/cnc/cnc-3th-2x.png"
+                        src="images/cnc-laser/3axis.png"
                         role="presentation"
                         alt="3 Axis CNC"
                     />
@@ -88,7 +89,7 @@ class JobType extends PureComponent {
                                 width: '100%',
                                 maxWidth: '326px'
                             }}
-                            src="images/cnc/cnc-4th-2x.png"
+                            src="images/cnc-laser/4axis.png"
                             role="presentation"
                             alt="4 Axis CNC"
                         />
@@ -97,22 +98,6 @@ class JobType extends PureComponent {
                             padding: '0px 15px 0px 15px'
                         }}
                         >
-                            <div className="sm-parameter-row">
-                                <span className="sm-parameter-row__label">{i18n._('Length (mm)')}</span>
-                                <Input
-                                    disabled={false}
-                                    className={styles['input-box-left']}
-                                    value={toFixed(length, 2)}
-                                    max={size.y}
-                                    min={0.1}
-                                    onChange={(value) => { this.props.updateMaterials({ length: value }); }}
-                                />
-                                <span
-                                    className={styles['input-box-inner-text']}
-                                >
-                                    L
-                                </span>
-                            </div>
                             <div className="sm-parameter-row">
                                 <span className="sm-parameter-row__label">{i18n._('Diameter (mm)')}</span>
                                 <Input
@@ -127,6 +112,22 @@ class JobType extends PureComponent {
                                     className={styles['input-box-inner-text']}
                                 >
                                     D
+                                </span>
+                            </div>
+                            <div className="sm-parameter-row">
+                                <span className="sm-parameter-row__label">{i18n._('Length (mm)')}</span>
+                                <Input
+                                    disabled={false}
+                                    className={styles['input-box-left']}
+                                    value={toFixed(length, 2)}
+                                    max={size.y}
+                                    min={0.1}
+                                    onChange={(value) => { this.props.updateMaterials({ length: value }); }}
+                                />
+                                <span
+                                    className={styles['input-box-inner-text']}
+                                >
+                                    L
                                 </span>
                             </div>
                         </div>

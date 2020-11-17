@@ -36,7 +36,9 @@ const generateCncViewPath = async (modelInfo, onProgress) => {
             const svg = await svgParser.parseFile(modelPath);
 
             const generator = new CncToolPathGenerator(modelInfo);
-            generator.on('progress', (p) => onProgress(p));
+            generator.on('progress', (p) => {
+                onProgress(p);
+            });
             viewPath = await generator.generateViewPathObj(svg, modelInfo);
         }
         return new Promise((resolve) => {
@@ -131,10 +133,14 @@ export const generateViewPath = (modelInfos, onProgress) => {
     const reps = [];
 
     let targetDepth = 0;
-    for (const modelInfo of modelInfos) {
+    for (let i = 0; i < modelInfos.length; i++) {
+        const modelInfo = modelInfos[i];
         targetDepth = Math.max(targetDepth, modelInfo.gcodeConfig.targetDepth);
-        reps.push(generateCncViewPath(modelInfo, onProgress));
+        reps.push(generateCncViewPath(modelInfo, (p) => {
+            onProgress(p * (i + 1) / modelInfos.length);
+        }));
     }
+    onProgress(1);
     targetDepth += 5;
     return new Promise((resolve, reject) => {
         Promise.all(reps).then(results => {

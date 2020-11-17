@@ -42,7 +42,7 @@ class LaserToolPathGenerator extends EventEmitter {
         toolPath.setComment('; G-code START <<<');
         toolPath.setCommand({ M: 106, P: 0, S: 255 });
 
-        if (mode === 'bw' || mode === 'newsprint' || (mode === 'greyscale' && movementMode === 'greyscale-line')) {
+        if (mode === 'bw' || mode === 'halftone' || (mode === 'greyscale' && movementMode === 'greyscale-line')) {
             await this.generateGcodeBW(modelInfo, modelPath);
         } else if (mode === 'greyscale') {
             await this.generateGcodeGreyscale(modelInfo, modelPath);
