@@ -120,6 +120,8 @@ export class MeshProcess {
         this.sliceDensity = sliceDensity;
         this.transformation = transformation;
 
+        this.flip = isRotate ? 1 : 0;
+
         this.isRotate = isRotate;
         this.diameter = diameter;
 
@@ -239,6 +241,8 @@ export class MeshProcess {
                     }
                 }
 
+                image.flip((this.flip & 2) > 0, (this.flip & 1) > 0);
+
                 image.write(`${DataStorage.tmpDir}/${this.outputFilename}`, () => {
                     resolve({
                         filename: this.outputFilename,
@@ -336,6 +340,9 @@ export class MeshProcess {
                         image.bitmap.data[idx + 3] = a;
                     }
                 }
+
+                image.flip((this.flip & 2) > 0, (this.flip & 1) > 0);
+
                 image.write(`${DataStorage.tmpDir}/${this.outputFilename}`, () => {
                     resolve({
                         filename: this.outputFilename,

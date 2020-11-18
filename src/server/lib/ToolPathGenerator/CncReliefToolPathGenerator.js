@@ -36,7 +36,13 @@ class ZState {
             if (lastCommand.G !== 0 || lastCommand.Z < this.maxZ) {
                 toolPath.move0Z(this.maxZ, this.f);
             }
-            toolPath.move0XY(this.x, this.y, this.f);
+            if (this.x !== null && this.y !== null) {
+                toolPath.move0XY(this.x, this.y, this.f);
+            } else if (this.x !== null) {
+                toolPath.move0X(this.x, this.f);
+            } else if (this.y !== null) {
+                toolPath.move0Y(this.y, this.f);
+            }
             toolPath.move0Z(this.z, this.f);
 
             this.init();
@@ -75,7 +81,7 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
         this.diameter = diameter;
         this.isCW = isCW;
 
-        this.isModel = isModel;
+        this.isRotateModel = isRotate && isModel;
 
         this.targetDepth = targetDepth;
 
@@ -84,7 +90,7 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
         this.imageInitalZ = this.initialZ;
         this.imageFinalZ = this.initialZ - this.targetDepth;
 
-        if (isRotate && isModel) {
+        if (this.isRotateModel) {
             this.modelDiameter = transformation.width / Math.PI;
             this.targetDepth = radius;
             this.imageInitalZ = this.modelDiameter / 2;
@@ -101,7 +107,7 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
 
         this.toolSlope = Math.tan(toolAngle / 2 * Math.PI / 180);
 
-        this.toolPath = new XToBToolPath({ isRotate: this.isRotate, diameter: this.isModel ? this.modelDiameter : this.diameter });
+        this.toolPath = new XToBToolPath({ isRotate: this.isRotate, diameter: this.isRotateModel ? this.modelDiameter : this.diameter });
 
         const targetWidth = Math.round(transformation.width * this.density);
         const targetHeight = Math.round(transformation.height * this.density);
@@ -223,16 +229,6 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
     _calculateThePrintZ(pixel) {
         const z = round(this.imageInitalZ - (this.imageInitalZ - this.imageFinalZ) * (255 - pixel) / 255, 2);
         return Math.min(this.initialZ, z);
-        // if (this.isRotate && this.isModel) {
-        //     const modelRadius = this.modelDiameter / 2;
-        //     const d = this.diameter / 2 - modelRadius;
-        //     return Math.min(this.initialZ, this.initialZ - d - Math.round((255 - pixel) * modelRadius / 255 * 100) / 100);
-        // } else if (this.isRotate) {
-        //     const targetDepth = Math.min(this.targetDepth, this.diameter / 2);
-        //     return this.initialZ - Math.round((255 - pixel) * targetDepth / 255 * 100) / 100;
-        // } else {
-        //     return this.initialZ - Math.round((255 - pixel) * this.targetDepth / 255 * 100) / 100;
-        // }
     }
 
     parseRotateImageToViewPathObj = (data) => {
@@ -240,7 +236,7 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
 
         const paths = [];
 
-        const pathLength = this.isModel ? this.targetWidth : Math.round(this.diameter * Math.PI * this.density);
+        const pathLength = this.isRotateModel ? this.targetWidth : Math.round(this.diameter * Math.PI * this.density);
 
         const swapPath = (path, start, end) => {
             const pathTmp = [];
@@ -430,19 +426,33 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
             }
         }
 
+        let circle = 0;
+
         while (cutDown) {
             cutDown = false;
-            let isOrder = false;
+            let isOrder = true;
             const zState = new ZState();
 
             for (let j = 0; j < this.targetHeight; j++) {
                 const gY = normalizer.y(this.targetHeight - 1 - j);
 
                 if (zMin[j] >= curDepth + this.stepDown) {
+                    zState.update({
+                        y: gY,
+                        z: this.initialZ,
+                        f: jogSpeed
+                    });
                     continue;
                 }
 
-                isOrder = !isOrder;
+                if (j > 0) {
+                    if (!this.isRotateModel) {
+                        isOrder = !isOrder;
+                    } else {
+                        circle++;
+                        this.toolPath.setCircle(circle);
+                    }
+                }
 
                 for (let k = 0; k < this.targetWidth; k++) {
                     const i = isOrder ? k : this.targetWidth - 1 - k;
@@ -450,23 +460,22 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
 
                     let z = data[i][j];
 
-                    if (k === 0) {
-                        zState.update({
-                            x: gX,
-                            y: gY,
-                            z: this.initialZ,
-                            f: jogSpeed
-                        });
-                    }
-
                     if (z < curDepth + this.stepDown) {
                         zState.move(this.toolPath);
 
                         z = Math.max(curDepth, z);
-                        if (currentZ === z) {
-                            this.toolPath.move1X(gX, workSpeed);
+                        if (k === 0) {
+                            if (currentZ === z) {
+                                this.toolPath.move1XY(gX, gY, workSpeed);
+                            } else {
+                                this.toolPath.move1XYZ(gX, gY, z, plungeSpeed);
+                            }
                         } else {
-                            this.toolPath.move1XZ(gX, z, plungeSpeed);
+                            if (currentZ === z) {
+                                this.toolPath.move1X(gX, workSpeed);
+                            } else {
+                                this.toolPath.move1XZ(gX, z, plungeSpeed);
+                            }
                         }
                         currentZ = z;
                         cutDown = true;
@@ -474,11 +483,13 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
                         zState.update({
                             x: gX,
                             y: gY,
-                            z: z,
+                            z: k === 0 ? this.initialZ : z,
                             f: jogSpeed
                         });
                     }
                 }
+
+                zState.move(this.toolPath);
 
                 currentZ = this.initialZ;
 
@@ -495,10 +506,6 @@ export default class CncReliefToolPathGenerator extends EventEmitter {
                 currentZ = safetyHeight;
                 curDepth = round((curDepth - this.stepDown), 2);
             }
-
-            // if (curDepth < this.finalDepth) {
-            //     break;
-            // }
 
             cutDownTimes += 1;
         }
