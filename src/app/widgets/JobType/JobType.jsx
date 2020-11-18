@@ -55,7 +55,7 @@ class JobType extends PureComponent {
                                 this.props.updateMaterials({ isRotate: false });
                             }}
                         >
-                            {i18n._('3 Axis CNC')}
+                            {i18n._('3 Axis')}
                         </button>
                         <button
                             type="button"
@@ -65,7 +65,7 @@ class JobType extends PureComponent {
                                 this.props.updateMaterials({ isRotate: true });
                             }}
                         >
-                            {i18n._('4 Axis CNC')}
+                            {i18n._('4 Axis')}
                         </button>
                     </div>
                 </div>
@@ -78,7 +78,7 @@ class JobType extends PureComponent {
                         }}
                         src="images/cnc-laser/3axis.png"
                         role="presentation"
-                        alt="3 Axis CNC"
+                        alt="3 Axis"
                     />
                 )}
                 {isRotate && (
@@ -91,7 +91,7 @@ class JobType extends PureComponent {
                             }}
                             src="images/cnc-laser/4axis.png"
                             role="presentation"
-                            alt="4 Axis CNC"
+                            alt="4 Axis"
                         />
                         <div style={{
                             marginTop: '16px',
@@ -105,7 +105,7 @@ class JobType extends PureComponent {
                                     className={styles['input-box-left']}
                                     value={toFixed(diameter, 2)}
                                     max={size.x}
-                                    min={0.1}
+                                    min={2}
                                     onChange={(value) => { this.props.updateMaterials({ diameter: value }); }}
                                 />
                                 <span
@@ -121,7 +121,7 @@ class JobType extends PureComponent {
                                     className={styles['input-box-left']}
                                     value={toFixed(length, 2)}
                                     max={size.y}
-                                    min={0.1}
+                                    min={10}
                                     onChange={(value) => { this.props.updateMaterials({ length: value }); }}
                                 />
                                 <span

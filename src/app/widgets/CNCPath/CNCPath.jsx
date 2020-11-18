@@ -27,6 +27,7 @@ class CNCPath extends PureComponent {
         mode: PropTypes.string.isRequired,
         showOrigin: PropTypes.bool,
         config: PropTypes.object.isRequired,
+        materials: PropTypes.object.isRequired,
         // transformation: PropTypes.object.isRequired,
         gcodeConfig: PropTypes.object.isRequired,
         printOrder: PropTypes.number.isRequired,
@@ -89,7 +90,8 @@ class CNCPath extends PureComponent {
             updateSelectedModelUniformScalingState,
             selectedModel,
             modifyText,
-            updateSelectedModelConfig
+            updateSelectedModelConfig,
+            materials
         } = this.props;
         const selectedNotHide = selectedModelArray && selectedModelArray.length === 1 && selectedModelVisible;
 
@@ -100,6 +102,7 @@ class CNCPath extends PureComponent {
         const isEditor = page === PAGE_EDITOR;
         const isProcess = page === PAGE_PROCESS;
         const isProcessMode = isEditor && sourceType === 'raster' && config.svgNodeName !== 'text';
+        const { isRotate } = materials;
         return (
             <React.Fragment>
                 {isEditor && (
@@ -131,7 +134,7 @@ class CNCPath extends PureComponent {
                                 modifyText={modifyText}
                             />
                         )}
-                        {isEditor && isImage3d && (
+                        {isEditor && isImage3d && !isRotate && (
                             <Image3dParameters
                                 disabled={!selectedModelVisible}
                                 config={config}
@@ -179,7 +182,7 @@ class CNCPath extends PureComponent {
 
 // todo, selected model will be instead
 const mapStateToProps = (state) => {
-    const { page, modelGroup, toolPathModelGroup, printOrder } = state.cnc;
+    const { page, modelGroup, toolPathModelGroup, printOrder, materials } = state.cnc;
     const selectedModel = modelGroup.getSelectedModel();
     const gcodeConfig = toolPathModelGroup.getSelectedModel().gcodeConfig;
     const selectedModelID = selectedModel.modelID;
@@ -205,7 +208,8 @@ const mapStateToProps = (state) => {
         sourceType,
         mode,
         showOrigin,
-        config
+        config,
+        materials
     };
 };
 

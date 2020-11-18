@@ -75,7 +75,7 @@ class Image3dParameters extends PureComponent {
             <div>
                 <Anchor className="sm-parameter-header" onClick={this.actions.onToggleExpand}>
                     <span className="fa fa-gears sm-parameter-header__indicator" />
-                    <span className="sm-parameter-header__title">{i18n._('Mesh')}</span>
+                    <span className="sm-parameter-header__title">{i18n._('Model')}</span>
                     <span className={classNames(
                         'fa',
                         this.state.expanded ? 'fa-angle-double-up' : 'fa-angle-double-down',
@@ -87,11 +87,11 @@ class Image3dParameters extends PureComponent {
                 {this.state.expanded && !isRotate && (
                     <React.Fragment>
                         <TipTrigger
-                            title={i18n._('Face')}
-                            content={i18n._('Select the orientation of the model\'s facets')}
+                            title={i18n._('Projection Direction')}
+                            content={i18n._('Select the orientation of the model\'s projection direction')}
                         >
                             <div className="sm-parameter-row">
-                                <span className="sm-parameter-row__label">{i18n._('Face')}</span>
+                                <span className="sm-parameter-row__label">{i18n._('Projection Direction')}</span>
                                 <Select
                                     disabled={disabled}
                                     className="sm-parameter-row__select"

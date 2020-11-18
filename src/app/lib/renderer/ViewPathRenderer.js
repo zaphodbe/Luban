@@ -44,11 +44,14 @@ export class ViewPathRenderer {
     _generateViewPathObj(viewPath) {
         const { isRotate, diameter, width, height, data } = viewPath;
 
+        const radialSegments = data[0].length - 1;
+        const heightSegments = data.length - 1;
+
         let geometry = null;
         if (isRotate) {
-            geometry = new THREE.CylinderBufferGeometry(diameter / 2, diameter / 2, height, data[0].length - 1, data.length - 1);
+            geometry = new THREE.CylinderBufferGeometry(diameter / 2, diameter / 2, height, radialSegments, heightSegments);
         } else {
-            geometry = new THREE.PlaneBufferGeometry(width, height, data[0].length - 1, data.length - 1);
+            geometry = new THREE.PlaneBufferGeometry(width, height, radialSegments, heightSegments);
         }
         const positions = geometry.attributes.position.array;
 
@@ -58,7 +61,25 @@ export class ViewPathRenderer {
                 positions[index] = data[i][j].x;
                 positions[index + 2] = data[i][j].y;
             }
+            if (i === 0) {
+                const topIndex = ((radialSegments + 1) * (heightSegments + 1) + radialSegments) * 3;
+                for (let j = 0; j < data[i].length; j++) {
+                    const index = topIndex + j * 3;
+                    positions[index] = data[i][j].x;
+                    positions[index + 2] = data[i][j].y;
+                }
+            }
+
+            if (i === data.length - 1) {
+                const topIndex = ((radialSegments + 1) * (heightSegments + 1) + 3 * radialSegments + 1) * 3;
+                for (let j = 0; j < data[i].length; j++) {
+                    const index = topIndex + j * 3;
+                    positions[index] = data[i][j].x;
+                    positions[index + 2] = data[i][j].y;
+                }
+            }
         }
+
 
         geometry.computeFaceNormals();
         geometry.computeVertexNormals();
