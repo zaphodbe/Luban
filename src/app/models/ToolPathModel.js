@@ -77,7 +77,7 @@ class ToolPathModel {
         };
     }
 
-    loadToolPath(filename, isSelected) {
+    loadToolPath(filename, isSelected = false) {
         this.toolPathFilename = filename;
         const toolPathFilePath = `${DATA_PREFIX}/${filename}`;
         return new Promise((resolve) => {

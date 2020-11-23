@@ -4,12 +4,13 @@ import uuid from 'uuid';
 import ToolPathModel from './ToolPathModel';
 import { DATA_PREFIX } from '../constants';
 import { ViewPathRenderer } from '../lib/renderer/ViewPathRenderer';
-import { materialSelected, materialUnselected } from '../lib/renderer/ToolPathRenderer';
+import { MATERIAL_UNSELECTED, MATERIAL_SELECTED } from '../lib/renderer/ToolPathRenderer';
 
 class ToolPathModelGroup {
     constructor(modelGroup) {
         this.object = new THREE.Group();
         this.object.visible = false;
+        this.object.isRotate = false;
 
         this.toolPathObjs = new THREE.Group();
         this.materialsObj = null;
@@ -96,14 +97,16 @@ class ToolPathModelGroup {
 
     selectToolPathModel(modelID) {
         this.selectedToolPathModel = this.getToolPathModel(modelID);
+        // change toolPathObj3D's material
         this.toolPathModels.forEach((item) => {
             if (item.toolPathObj3D) {
-                item.toolPathObj3D.material = materialUnselected;
+                item.toolPathObj3D.material = MATERIAL_UNSELECTED;
             }
         });
+
         if (this.selectedToolPathModel) {
             if (this.selectedToolPathModel.toolPathObj3D) {
-                this.selectedToolPathModel.toolPathObj3D.material = materialSelected;
+                this.selectedToolPathModel.toolPathObj3D.material = MATERIAL_SELECTED;
             }
             return this.getState(this.selectedToolPathModel);
         } else {

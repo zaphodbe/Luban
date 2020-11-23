@@ -19,8 +19,8 @@ import { valueOf } from '../../lib/contants-utils';
 import { machineStore } from '../../store/local-storage';
 import { Server } from './Server';
 import { actions as printingActions } from '../printing';
-import { actions as widgetActions } from '../widget';
 import { actions as editorActions } from '../editor';
+import { actions as widgetActions } from '../widget';
 import History from './History';
 import FixedArray from './FixedArray';
 import { controller } from '../../lib/controller';
@@ -199,19 +199,39 @@ export const actions = {
             'Marlin:state': (options) => {
                 // TODO: serialPort
                 const { state } = options;
-                const { pos, originOffset, headStatus, headPower, temperature, zFocus, isHomed, zAxisModule } = state;
+                const { pos, headType, originOffset, headStatus, headPower, temperature, zFocus, isHomed, zAxisModule } = state;
 
                 const machineState = getState().machine;
 
-                if (machineState.workPosition.x !== pos.x
-                    || machineState.workPosition.y !== pos.y
-                    || machineState.workPosition.z !== pos.z) {
-                    dispatch(actions.updateState({
-                        workPosition: {
-                            ...machineState.workPosition,
-                            ...pos
-                        }
-                    }));
+                if (pos.isFourAxis) {
+                    if (machineState.workPosition.x !== pos.x
+                       || machineState.workPosition.y !== pos.y
+                       || machineState.workPosition.z !== pos.z
+                       || machineState.workPosition.b !== pos.b) {
+                        dispatch(editorActions.updateMaterials(headType.toLowerCase(), {
+                            isRotate: true
+                        }));
+                        dispatch(actions.updateState({
+                            workPosition: {
+                                ...machineState.workPosition,
+                                ...pos
+                            }
+                        }));
+                    }
+                } else {
+                    if (machineState.workPosition.x !== pos.x
+                       || machineState.workPosition.y !== pos.y
+                       || machineState.workPosition.z !== pos.z) {
+                        dispatch(editorActions.updateMaterials(headType.toLowerCase(), {
+                            isRotate: false
+                        }));
+                        dispatch(actions.updateState({
+                            workPosition: {
+                                ...machineState.workPosition,
+                                ...pos
+                            }
+                        }));
+                    }
                 }
                 if (machineState.originOffset.x !== originOffset.x
                     || machineState.originOffset.y !== originOffset.y
@@ -588,7 +608,7 @@ export const actions = {
             server.on('http:status', (result) => {
                 const { workPosition, originOffset, gcodePrintingInfo } = getState().machine;
                 const {
-                    status, isHomed, x, y, z, offsetX, offsetY, offsetZ,
+                    status, isHomed, x, y, z, b, offsetX, offsetY, offsetZ,
                     laserFocalLength,
                     laserPower,
                     nozzleTemperature,
@@ -596,10 +616,10 @@ export const actions = {
                     heatedBedTemperature,
                     doorSwitchCount,
                     isEnclosureDoorOpen,
+                    headType,
                     heatedBedTargetTemperature,
                     isEmergencyStopped
                 } = result.data;
-
                 if (isEmergencyStopped) {
                     dispatch(actions.close(null, true));
                     server.close(() => {
@@ -620,21 +640,47 @@ export const actions = {
                     heatedBedTargetTemperature: heatedBedTargetTemperature,
                     isEmergencyStopped: isEmergencyStopped
                 }));
-                if (workPosition.x !== x
-                    || workPosition.y !== y
-                    || workPosition.z !== z) {
-                    dispatch(actions.updateState({
-                        workPosition: {
-                            x: `${x.toFixed(3)}`,
-                            y: `${y.toFixed(3)}`,
-                            z: `${z.toFixed(3)}`,
-                            a: '0.000'
-                        }
-                    }));
+                // make 'workPosition' value as Number
+                if (!(_.isUndefined(b))) {
+                    if (Number(workPosition.x) !== x
+                       || Number(workPosition.y) !== y
+                       || Number(workPosition.z) !== z
+                       || Number(workPosition.b) !== b) {
+                        dispatch(editorActions.updateMaterials(headType.toLowerCase(), {
+                            isRotate: true
+                        }));
+                        dispatch(actions.updateState({
+                            workPosition: {
+                                x: `${x.toFixed(3)}`,
+                                y: `${y.toFixed(3)}`,
+                                z: `${z.toFixed(3)}`,
+                                b: `${b.toFixed(3)}`,
+                                isFourAxis: true,
+                                a: '0.000'
+                            }
+                        }));
+                    }
+                } else {
+                    if (Number(workPosition.x) !== x
+                       || Number(workPosition.y) !== y
+                       || Number(workPosition.z) !== z) {
+                        dispatch(editorActions.updateMaterials(headType.toLowerCase(), {
+                            isRotate: false
+                        }));
+                        dispatch(actions.updateState({
+                            workPosition: {
+                                x: `${x.toFixed(3)}`,
+                                y: `${y.toFixed(3)}`,
+                                z: `${z.toFixed(3)}`,
+                                a: '0.000'
+                            }
+                        }));
+                    }
                 }
-                if (originOffset.x !== offsetX
-                    || originOffset.y !== offsetY
-                    || originOffset.z !== offsetZ) {
+
+                if (Number(originOffset.x) !== offsetX
+                    || Number(originOffset.y) !== offsetY
+                    || Number(originOffset.z) !== offsetZ) {
                     dispatch(actions.updateState({
                         originOffset: {
                             x: `${offsetX.toFixed(3)}`,
